@@ -21,3 +21,35 @@ variable "vpc_cidr_block" {
   type        = string
   default     = "10.0.0.0/16"
 }
+
+variable "public_subnet_cidr_block" {
+  description = "The CIDR block for the public subnet."
+  type        = string
+  default     = "10.0.1.0/24"
+}
+
+variable "private_subnet_cidr_block" {
+  description = "The CIDR block for the private subnet."
+  type        = string
+  default     = "10.0.2.0/24"
+}
+
+# Create a route table for the public subnet to route traffic to the internet
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+
+  # The route to the internet gateway for 0.0.0.0/0 traffic
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main.id
+  }
+  tags = {
+    Name = "MyVPC_PublicRouteTable"
+  }
+}
+
+# Associate the route table with the public subnet
+resource "aws_route_table_association" "public" {
+  subnet_id      = aws_subnet.public.id
+  route_table_id = aws_route_table.public.id
+}
