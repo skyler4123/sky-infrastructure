@@ -20,3 +20,15 @@ resource "aws_s3_bucket" "my_bucket" {
     Name = "MyFirstBucket"
   }
 }
+
+# -----------------------------------------------------------------------------
+# New VPC and Networking Resources
+# -----------------------------------------------------------------------------
+
+# Create a new Virtual Private Cloud (VPC)
+resource "aws_vpc" "main" {
+  cidr_block = var.vpc_cidr_block
+  tags = {
+    Name = "MyVPC"
+  }
+}
