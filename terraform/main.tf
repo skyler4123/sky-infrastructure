@@ -32,3 +32,11 @@ resource "aws_vpc" "main" {
     Name = "MyVPC"
   }
 }
+
+# Create an Internet Gateway (IGW) for the VPC
+resource "aws_internet_gateway" "main" {
+  vpc_id = aws_vpc.main.id
+  tags = {
+    Name = "MyVPC_IGW"
+  }
+}
