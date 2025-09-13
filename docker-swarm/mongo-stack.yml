@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  mongodb-primary:
+    image: bitnami/mongodb:latest
+    environment:
+      - MONGODB_ADVERTISED_HOSTNAME=mongodb-primary
+      - MONGODB_REPLICA_SET_MODE=primary
+      - MONGODB_ROOT_PASSWORD=password123
+      - MONGODB_REPLICA_SET_KEY=replicasetkey123
+    volumes:
+      - mongodb_master_data:/bitnami
+    networks:
+      - mongo_network
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        # This constraint ensures the PostgreSQL service is deployed to a manager node
+        # as it is a single-replica service and requires stable storage.
+        constraints:
+          - node.role == manager
+
+  mongodb-secondary:
+    image: bitnami/mongodb:latest
+    depends_on:
+      - mongodb-primary
+    environment:
+      - MONGODB_REPLICA_SET_MODE=secondary
+      - MONGODB_INITIAL_PRIMARY_HOST=mongodb-primary
+      - MONGODB_INITIAL_PRIMARY_PORT_NUMBER=27017
+      - MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD=password123
+      - MONGODB_REPLICA_SET_KEY=replicasetkey123
+    networks:
+      - mongo_network
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        # This constraint ensures the PostgreSQL service is deployed to a manager node
+        # as it is a single-replica service and requires stable storage.
+        constraints:
+          - node.role == manager
+
+  mongodb-arbiter:
+    image: bitnami/mongodb:latest
+    depends_on:
+      - mongodb-primary
+    environment:
+      - MONGODB_REPLICA_SET_MODE=arbiter
+      - MONGODB_INITIAL_PRIMARY_HOST=mongodb-primary
+      - MONGODB_INITIAL_PRIMARY_PORT_NUMBER=27017
+      - MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD=password123
+      - MONGODB_REPLICA_SET_KEY=replicasetkey123
+    networks:
+      - mongo_network
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        # This constraint ensures the PostgreSQL service is deployed to a manager node
+        # as it is a single-replica service and requires stable storage.
+        constraints:
+          - node.role == manager
+
+networks:
+  mongo_network:
+    driver: overlay
+    attachable: true
+
+volumes:
+  mongodb_master_data:
+    driver: local

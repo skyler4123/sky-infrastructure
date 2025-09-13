@@ -1,0 +1,61 @@
+version: '3.7'
+
+services:
+  postgresql-master:
+    image: bitnami/postgresql:latest
+    ports:
+      - "5432:5432" # Published on port 5432 of the ingress network
+    volumes:
+      - postgresql_master_data:/bitnami/postgresql
+    environment:
+      - POSTGRESQL_REPLICATION_MODE=master
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_USERNAME=postgres
+      - POSTGRESQL_PASSWORD=password
+    networks:
+      - postgres_network
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+          # - node.labels.node_rule == postgresql_master
+
+  postgresql-slave-1:
+    image: bitnami/postgresql:latest
+    ports:
+      - "5433:5432" # Published on port 5433 of the ingress network
+    volumes:
+      - postgresql_slave_data_1:/bitnami/postgresql
+    depends_on:
+      - postgresql-master
+    environment:
+      - POSTGRESQL_REPLICATION_MODE=slave
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_MASTER_HOST=postgresql-master
+      - POSTGRESQL_USERNAME=postgres
+      - POSTGRESQL_PASSWORD=password
+      - POSTGRESQL_MASTER_PORT_NUMBER=5432
+    networks:
+      - postgres_network
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+          # - node.labels.node_rule == postgresql_slave_1
+
+networks:
+  postgres_network:
+    driver: overlay
+    attachable: true
+
+volumes:
+  postgresql_master_data:
+    driver: local
+  postgresql_slave_data_1:
+    driver: local
