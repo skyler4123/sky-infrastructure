@@ -8,7 +8,7 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-east-1"
+  region     = "us-east-1"
   access_key = var.access_key
   secret_key = var.secret_key
 }
@@ -108,12 +108,12 @@ data "aws_ami" "amazon_linux" {
 # Create an EC2 instance in the public subnet
 resource "aws_instance" "public_instance" {
   # Get the latest Amazon Linux 2 AMI
-  ami           = data.aws_ami.amazon_linux.id
-  instance_type = "t2.micro"
-  subnet_id     = aws_subnet.public.id
+  ami                         = data.aws_ami.amazon_linux.id
+  instance_type               = "t2.micro"
+  subnet_id                   = aws_subnet.public.id
   associate_public_ip_address = true
-  vpc_security_group_ids = [aws_security_group.ssh_sg.id]
-  key_name = "key_pair_01"
+  vpc_security_group_ids      = [aws_security_group.ssh_sg.id]
+  key_name                    = "key_pair_01"
   # User data script to install Docker and start the service
   user_data = <<-EOF
               #!/bin/bash
@@ -126,5 +126,28 @@ resource "aws_instance" "public_instance" {
 
   tags = {
     Name = "PublicInstance"
+  }
+}
+
+# -----------------------------------------------------------------------------
+# New EC2 Instance with t2.medium type
+# -----------------------------------------------------------------------------
+resource "aws_instance" "medium_instance" {
+  ami                         = data.aws_ami.amazon_linux.id
+  instance_type               = "t2.medium"
+  subnet_id                   = aws_subnet.public.id
+  associate_public_ip_address = true
+  vpc_security_group_ids      = [aws_security_group.ssh_sg.id]
+  key_name                    = "key_pair_01"
+  user_data                   = <<-EOF
+              #!/bin/bash
+              yum update -y
+              yum install docker -y
+              service docker start
+              usermod -a -G docker ec2-user
+              chkconfig docker on
+              EOF
+  tags = {
+    Name = "MediumInstance"
   }
 }
