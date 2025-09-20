@@ -159,50 +159,6 @@ data "aws_ami" "amazon_linux" {
 }
 
 # -----------------------------------------------------------------------------
-# Elastic IP for Traefik Node
-# -----------------------------------------------------------------------------
-
-resource "aws_eip" "traefik_eip" {
-  instance = aws_instance.traefik_node.id
-  vpc      = true
-  tags = {
-    Name = "TraefikEIP"
-  }
-}
-
-# -----------------------------------------------------------------------------
-# Route 53 Hosted Zone and DNS Records
-# -----------------------------------------------------------------------------
-
-resource "aws_route53_zone" "skyceer" {
-  name = "skyceer.com"
-}
-
-resource "aws_route53_record" "app" {
-  zone_id = aws_route53_zone.skyceer.zone_id
-  name    = "app.skyceer.com"
-  type    = "A"
-  ttl     = 300
-  records = [aws_eip.traefik_eip.public_ip]
-}
-
-resource "aws_route53_record" "primary" {
-  zone_id = aws_route53_zone.skyceer.zone_id
-  name    = "primary.skyceer.com"
-  type    = "A"
-  ttl     = 300
-  records = [aws_instance.postgres_primary.private_ip]
-}
-
-resource "aws_route53_record" "replica_1" {
-  zone_id = aws_route53_zone.skyceer.zone_id
-  name    = "replica-1.skyceer.com"
-  type    = "A"
-  ttl     = 300
-  records = [aws_instance.postgres_replica.private_ip]
-}
-
-# -----------------------------------------------------------------------------
 # EC2 Instances for Docker Swarm Cluster
 # -----------------------------------------------------------------------------
 
@@ -288,4 +244,41 @@ resource "aws_instance" "postgres_replica" {
   tags = {
     Name = "PostgresReplica"
   }
+}
+
+# -----------------------------------------------------------------------------
+# Route 53 DNS Records for Subdomains
+# -----------------------------------------------------------------------------
+
+# Data source to get the hosted zone for skyceer.com
+data "aws_route53_zone" "skyceer" {
+  name         = "skyceer.com"
+  private_zone = false
+}
+
+# Route 53 A record for app.skyceer.com
+resource "aws_route53_record" "app" {
+  zone_id = data.aws_route53_zone.skyceer.zone_id
+  name    = "app.skyceer.com"
+  type    = "A"
+  ttl     = 300
+  records = [aws_instance.traefik_node.public_ip]
+}
+
+# Route 53 A record for primary.skyceer.com
+resource "aws_route53_record" "primary" {
+  zone_id = data.aws_route53_zone.skyceer.zone_id
+  name    = "primary.skyceer.com"
+  type    = "A"
+  ttl     = 300
+  records = [aws_instance.traefik_node.public_ip]
+}
+
+# Route 53 A record for replica-1.skyceer.com
+resource "aws_route53_record" "replica_1" {
+  zone_id = data.aws_route53_zone.skyceer.zone_id
+  name    = "replica-1.skyceer.com"
+  type    = "A"
+  ttl     = 300
+  records = [aws_instance.traefik_node.public_ip]
 }
