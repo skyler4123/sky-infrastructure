@@ -14,7 +14,6 @@ provider "aws" {
 }
 
 resource "aws_s3_bucket" "my_bucket" {
-  # bucket = "my-unique-bucket-name-123" # Must be globally unique
   bucket = var.bucket_name
   tags = {
     Name = "MyFirstBucket"
@@ -22,10 +21,9 @@ resource "aws_s3_bucket" "my_bucket" {
 }
 
 # -----------------------------------------------------------------------------
-# New VPC and Networking Resources
+# VPC and Networking Resources
 # -----------------------------------------------------------------------------
 
-# Create a new Virtual Private Cloud (VPC)
 resource "aws_vpc" "main" {
   cidr_block = var.vpc_cidr_block
   tags = {
@@ -33,7 +31,6 @@ resource "aws_vpc" "main" {
   }
 }
 
-# Create an Internet Gateway (IGW) for the VPC
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
   tags = {
@@ -41,17 +38,15 @@ resource "aws_internet_gateway" "main" {
   }
 }
 
-# Create a public subnet
 resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = var.public_subnet_cidr_block
-  map_public_ip_on_launch = true # Instances in this subnet get a public IP
+  map_public_ip_on_launch = true
   tags = {
     Name = "MyVPC_PublicSubnet"
   }
 }
 
-# Create a private subnet
 resource "aws_subnet" "private" {
   vpc_id     = aws_vpc.main.id
   cidr_block = var.private_subnet_cidr_block
@@ -61,20 +56,75 @@ resource "aws_subnet" "private" {
 }
 
 # -----------------------------------------------------------------------------
-# New EC2 Instance and Security Group
+# Security Groups
 # -----------------------------------------------------------------------------
 
-# Create a security group to allow SSH access
-resource "aws_security_group" "ssh_sg" {
-  name        = "ssh_security_group"
-  description = "Allow inbound SSH traffic"
+resource "aws_security_group" "swarm_sg" {
+  name        = "swarm_security_group"
+  description = "Allow SSH and Docker Swarm/Traefik ports"
   vpc_id      = aws_vpc.main.id
 
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # WARNING: Open to the world, for demonstration purposes only
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 2377
+    to_port     = 2377
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr_block]
+  }
+
+  ingress {
+    from_port   = 7946
+    to_port     = 7946
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr_block]
+  }
+
+  ingress {
+    from_port   = 7946
+    to_port     = 7946
+    protocol    = "udp"
+    cidr_blocks = [var.vpc_cidr_block]
+  }
+
+  ingress {
+    from_port   = 4789
+    to_port     = 4789
+    protocol    = "udp"
+    cidr_blocks = [var.vpc_cidr_block]
+  }
+
+  ingress {
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr_block]
   }
 
   egress {
@@ -85,11 +135,14 @@ resource "aws_security_group" "ssh_sg" {
   }
 
   tags = {
-    Name = "AllowSSH"
+    Name = "SwarmSecurityGroup"
   }
 }
 
-# Data source to retrieve the latest Amazon Linux 2 AMI
+# -----------------------------------------------------------------------------
+# AMI Data Source
+# -----------------------------------------------------------------------------
+
 data "aws_ami" "amazon_linux" {
   most_recent = true
   owners      = ["amazon"]
@@ -105,39 +158,16 @@ data "aws_ami" "amazon_linux" {
   }
 }
 
-# Create an EC2 instance in the public subnet
-resource "aws_instance" "public_instance" {
-  # Get the latest Amazon Linux 2 AMI
+# -----------------------------------------------------------------------------
+# EC2 Instances for Docker Swarm Cluster
+# -----------------------------------------------------------------------------
+
+resource "aws_instance" "swarm_manager" {
   ami                         = data.aws_ami.amazon_linux.id
   instance_type               = "t2.micro"
   subnet_id                   = aws_subnet.public.id
   associate_public_ip_address = true
-  vpc_security_group_ids      = [aws_security_group.ssh_sg.id]
-  key_name                    = "key_pair_01"
-  # User data script to install Docker and start the service
-  user_data = <<-EOF
-              #!/bin/bash
-              yum update -y
-              yum install docker -y
-              service docker start
-              usermod -a -G docker ec2-user
-              chkconfig docker on
-              EOF
-
-  tags = {
-    Name = "PublicInstance"
-  }
-}
-
-# -----------------------------------------------------------------------------
-# New EC2 Instance with t2.medium type
-# -----------------------------------------------------------------------------
-resource "aws_instance" "medium_instance" {
-  ami                         = data.aws_ami.amazon_linux.id
-  instance_type               = "t2.medium"
-  subnet_id                   = aws_subnet.public.id
-  associate_public_ip_address = true
-  vpc_security_group_ids      = [aws_security_group.ssh_sg.id]
+  vpc_security_group_ids      = [aws_security_group.swarm_sg.id]
   key_name                    = "key_pair_01"
   user_data                   = <<-EOF
               #!/bin/bash
@@ -146,8 +176,72 @@ resource "aws_instance" "medium_instance" {
               service docker start
               usermod -a -G docker ec2-user
               chkconfig docker on
+              docker swarm init
               EOF
   tags = {
-    Name = "MediumInstance"
+    Name = "SwarmManager"
+  }
+}
+
+resource "aws_instance" "traefik_node" {
+  ami                         = data.aws_ami.amazon_linux.id
+  instance_type               = "t2.micro"
+  subnet_id                   = aws_subnet.public.id
+  associate_public_ip_address = true
+  vpc_security_group_ids      = [aws_security_group.swarm_sg.id]
+  key_name                    = "key_pair_01"
+  user_data                   = <<-EOF
+              #!/bin/bash
+              yum update -y
+              yum install docker -y
+              service docker start
+              usermod -a -G docker ec2-user
+              chkconfig docker on
+              # Join the swarm (token to be added post-deployment)
+              EOF
+  tags = {
+    Name = "TraefikNode"
+  }
+}
+
+resource "aws_instance" "postgres_primary" {
+  ami                         = data.aws_ami.amazon_linux.id
+  instance_type               = "t2.micro"
+  subnet_id                   = aws_subnet.private.id
+  associate_public_ip_address = false
+  vpc_security_group_ids      = [aws_security_group.swarm_sg.id]
+  key_name                    = "key_pair_01"
+  user_data                   = <<-EOF
+              #!/bin/bash
+              yum update -y
+              yum install docker -y
+              service docker start
+              usermod -a -G docker ec2-user
+              chkconfig docker on
+              # Join the swarm (token to be added post-deployment)
+              EOF
+  tags = {
+    Name = "PostgresPrimary"
+  }
+}
+
+resource "aws_instance" "postgres_replica" {
+  ami                         = data.aws_ami.amazon_linux.id
+  instance_type               = "t2.micro"
+  subnet_id                   = aws_subnet.private.id
+  associate_public_ip_address = false
+  vpc_security_group_ids      = [aws_security_group.swarm_sg.id]
+  key_name                    = "key_pair_01"
+  user_data                   = <<-EOF
+              #!/bin/bash
+              yum update -y
+              yum install docker -y
+              service docker start
+              usermod -a -G docker ec2-user
+              chkconfig docker on
+              # Join the swarm (token to be added post-deployment)
+              EOF
+  tags = {
+    Name = "PostgresReplica"
   }
 }
