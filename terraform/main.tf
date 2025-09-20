@@ -218,7 +218,7 @@ data "aws_ami" "amazon_linux" {
 
 resource "aws_instance" "swarm_manager" {
   ami                         = data.aws_ami.amazon_linux.id
-  instance_type               = "t2.micro"
+  instance_type               = "t2.medium"
   subnet_id                   = aws_subnet.public.id
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.public_swarm_sg.id]
@@ -239,7 +239,7 @@ resource "aws_instance" "swarm_manager" {
 
 resource "aws_instance" "traefik_node" {
   ami                         = data.aws_ami.amazon_linux.id
-  instance_type               = "t2.micro"
+  instance_type               = "t2.medium"
   subnet_id                   = aws_subnet.public.id
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.public_swarm_sg.id]
@@ -260,7 +260,7 @@ resource "aws_instance" "traefik_node" {
 
 resource "aws_instance" "postgres_primary" {
   ami                         = data.aws_ami.amazon_linux.id
-  instance_type               = "t2.micro"
+  instance_type               = "t2.medium"
   subnet_id                   = aws_subnet.private.id
   associate_public_ip_address = false
   vpc_security_group_ids      = [aws_security_group.private_swarm_sg.id]
@@ -281,7 +281,7 @@ resource "aws_instance" "postgres_primary" {
 
 resource "aws_instance" "postgres_replica" {
   ami                         = data.aws_ami.amazon_linux.id
-  instance_type               = "t2.micro"
+  instance_type               = "t2.medium"
   subnet_id                   = aws_subnet.private.id
   associate_public_ip_address = false
   vpc_security_group_ids      = [aws_security_group.private_swarm_sg.id]
