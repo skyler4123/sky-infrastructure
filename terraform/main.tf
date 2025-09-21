@@ -230,7 +230,15 @@ resource "aws_instance" "swarm_manager" {
               service docker start
               usermod -a -G docker ec2-user
               chkconfig docker on
-              docker swarm init
+              
+              # Fetch the private IP dynamically
+              PRIVATE_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
+              
+              # Initialize Docker Swarm with the private IP
+              docker swarm init --advertise-addr $PRIVATE_IP
+              
+              # Store the Swarm join token for workers in a file (optional, for later use)
+              docker swarm join-token worker -q > /home/ec2-user/worker_token.txt
               EOF
   tags = {
     Name = "SwarmManager"
