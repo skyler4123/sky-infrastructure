@@ -1,3 +1,17 @@
+variable "ssh_private_key_path" {
+  description = "SSH Public key path in local machine that run Terraform"
+  type = string
+  sensitive = true
+  default = "~/Documents/aws/key_pair_01.pem"
+}
+
+variable "key_pair_name" {
+  description = "The name of key-pair SSH to connect to Ec2"
+  type = string
+  sensitive = true
+  default = "key_pair_01"
+}
+
 variable "access_key" {
   type = string
   sensitive = true

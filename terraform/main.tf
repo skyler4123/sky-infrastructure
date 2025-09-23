@@ -222,7 +222,7 @@ resource "aws_instance" "swarm_manager" {
   subnet_id                   = aws_subnet.public.id
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.public_swarm_sg.id]
-  key_name                    = "key_pair_01"
+  key_name                    = var.key_pair_name
   user_data                   = <<-EOF
               #!/bin/bash
               yum update -y
@@ -237,9 +237,10 @@ resource "aws_instance" "swarm_manager" {
               # Initialize Docker Swarm with the private IP
               docker swarm init --advertise-addr $PRIVATE_IP
               
-              # Store the Swarm join token for workers in a file (optional, for later use)
+              # Store the Swarm join token for workers in a file
               docker swarm join-token worker -q > /home/ec2-user/worker_token.txt
               EOF
+
   tags = {
     Name = "SwarmManager"
   }
@@ -251,7 +252,7 @@ resource "aws_instance" "traefik_node" {
   subnet_id                   = aws_subnet.public.id
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.public_swarm_sg.id]
-  key_name                    = "key_pair_01"
+  key_name                    = var.key_pair_name
   user_data                   = <<-EOF
               #!/bin/bash
               yum update -y
@@ -273,7 +274,7 @@ resource "aws_instance" "postgres_primary" {
   subnet_id                   = aws_subnet.private.id
   associate_public_ip_address = false
   vpc_security_group_ids      = [aws_security_group.private_swarm_sg.id]
-  key_name                    = "key_pair_01"
+  key_name                    = var.key_pair_name
   user_data                   = <<-EOF
               #!/bin/bash
               yum update -y
@@ -295,7 +296,7 @@ resource "aws_instance" "postgres_replica" {
   subnet_id                   = aws_subnet.private.id
   associate_public_ip_address = false
   vpc_security_group_ids      = [aws_security_group.private_swarm_sg.id]
-  key_name                    = "key_pair_01"
+  key_name                    = var.key_pair_name
   user_data                   = <<-EOF
               #!/bin/bash
               yum update -y
