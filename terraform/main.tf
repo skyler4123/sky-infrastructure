@@ -8,7 +8,7 @@ terraform {
 }
 
 provider "aws" {
-  region     = "us-east-1"
+  region     = var.region
   access_key = var.access_key
   secret_key = var.secret_key
 }
@@ -261,6 +261,7 @@ resource "aws_instance" "traefik_node" {
               chkconfig docker on
               # Join the swarm (token to be added post-deployment)
               EOF
+  depends_on = [aws_instance.swarm_manager]
   tags = {
     Name = "TraefikNode"
   }
@@ -282,6 +283,7 @@ resource "aws_instance" "postgres_primary" {
               chkconfig docker on
               # Join the swarm (token to be added post-deployment)
               EOF
+  depends_on = [aws_instance.swarm_manager]
   tags = {
     Name = "PostgresPrimary"
   }
@@ -303,6 +305,7 @@ resource "aws_instance" "postgres_replica" {
               chkconfig docker on
               # Join the swarm (token to be added post-deployment)
               EOF
+  depends_on = [aws_instance.swarm_manager]
   tags = {
     Name = "PostgresReplica"
   }
