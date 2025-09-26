@@ -33,14 +33,14 @@ output "private_swarm_sg_id" {
 }
 
 # EC2 Instance Outputs
-output "swarm_manager_instance_id" {
+output "ssh_tunnel_instance_id" {
   description = "The ID of the Swarm Manager EC2 instance"
-  value       = aws_instance.swarm_manager.id
+  value       = aws_instance.ssh_tunnel.id
 }
 
-output "swarm_manager_public_ip" {
+output "ssh_tunnel_public_ip" {
   description = "The public IP of the Swarm Manager EC2 instance"
-  value       = aws_instance.swarm_manager.public_ip
+  value       = aws_instance.ssh_tunnel.public_ip
 }
 
 # Route 53 Outputs
@@ -52,4 +52,9 @@ output "app_dns_name" {
 output "primary_dns_name" {
   description = "The DNS name for primary.skyceer.com"
   value       = aws_route53_record.primary.name
+}
+
+output "post_apply_message" {
+  description = "Custom message after Terraform apply"
+  value       = "Infrastructure setup complete! Use the bastion host at ...."
 }

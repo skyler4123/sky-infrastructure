@@ -78,7 +78,7 @@ terraform {
  # Security Groups
  # -----------------------------------------------------------------------------
  
- # Security group for public nodes (swarm_manager and traefik_node)
+ # Security group for public nodes (ssh_tunnel and traefik_node)
  resource "aws_security_group" "public_swarm_sg" {
    name        = "public_swarm_security_group"
    description = "Allow public SSH and Traefik ports, and internal Swarm traffic"
@@ -235,7 +235,7 @@ terraform {
  # EC2 Instances for Docker Swarm Cluster
  # -----------------------------------------------------------------------------
  
- resource "aws_instance" "swarm_manager" {
+ resource "aws_instance" "ssh_tunnel" {
    ami                         = data.aws_ami.amazon_linux.id
    instance_type               = "t2.medium"
    subnet_id                   = aws_subnet.public.id
@@ -260,7 +260,7 @@ terraform {
  
    # This ensures the provisioner only runs after all instances are created.
    depends_on = [
-     aws_instance.swarm_manager
+     aws_instance.ssh_tunnel
    ]
  
    # SSH connection details for the manager node
@@ -268,7 +268,7 @@ terraform {
      type        = "ssh"
      user        = "ec2-user"
      private_key = file(var.ssh_private_key_path)
-     host        = aws_instance.swarm_manager.public_ip
+     host        = aws_instance.ssh_tunnel.public_ip
    }
  
    # This provisioner runs a script on YOUR local machine (where you run terraform apply)
@@ -280,6 +280,22 @@ terraform {
    }
  }
  
+ # -----------------------------------------------------------------------------
+# Resource to Print Custom Message After Apply
+# -----------------------------------------------------------------------------
+
+resource "null_resource" "post_apply_message" {
+  depends_on = [
+    aws_instance.ssh_tunnel
+  ]
+
+  provisioner "local-exec" {
+    command = <<-EOF
+      echo "Terraform apply completed successfully!"
+    EOF
+  }
+}
+
  # -----------------------------------------------------------------------------
  # Route 53 DNS Records for Subdomains
  # -----------------------------------------------------------------------------
@@ -296,7 +312,7 @@ terraform {
    name    = "skyceer.com"
    type    = "A"
    ttl     = 300
-   records = [aws_instance.swarm_manager.public_ip]
+   records = [aws_instance.ssh_tunnel.public_ip]
  }
  
  # Route 53 A record for app.skyceer.com
@@ -305,7 +321,7 @@ terraform {
    name    = "app.skyceer.com"
    type    = "A"
    ttl     = 300
-   records = [aws_instance.swarm_manager.public_ip]
+   records = [aws_instance.ssh_tunnel.public_ip]
  }
  
  # Route 53 A record for primary.skyceer.com
@@ -314,7 +330,7 @@ terraform {
    name    = "primary.skyceer.com"
    type    = "A"
    ttl     = 300
-   records = [aws_instance.swarm_manager.public_ip]
+   records = [aws_instance.ssh_tunnel.public_ip]
  }
  
  # Route 53 A record for replica-1.skyceer.com
@@ -323,5 +339,5 @@ terraform {
    name    = "replica-1.skyceer.com"
    type    = "A"
    ttl     = 300
-   records = [aws_instance.swarm_manager.public_ip]
+   records = [aws_instance.ssh_tunnel.public_ip]
  }
