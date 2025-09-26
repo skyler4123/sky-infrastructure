@@ -252,35 +252,7 @@ terraform {
    }
  }
  
- # -----------------------------------------------------------------------------
- # Null Resource to Orchestrate Swarm Join via SSH
- # -----------------------------------------------------------------------------
- 
- resource "null_resource" "swarm_cluster_joiner" {
- 
-   # This ensures the provisioner only runs after all instances are created.
-   depends_on = [
-     aws_instance.ssh_tunnel
-   ]
- 
-   # SSH connection details for the manager node
-   connection {
-     type        = "ssh"
-     user        = "ec2-user"
-     private_key = file(var.ssh_private_key_path)
-     host        = aws_instance.ssh_tunnel.public_ip
-   }
- 
-   # This provisioner runs a script on YOUR local machine (where you run terraform apply)
-   provisioner "local-exec" {
-     command = <<-EOF
-       echo "Waiting for Docker to be fully initialized on all nodes..."
-
-     EOF
-   }
- }
- 
- # -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Resource to Print Custom Message After Apply
 # -----------------------------------------------------------------------------
 
