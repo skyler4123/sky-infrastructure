@@ -237,7 +237,7 @@ terraform {
  
  resource "aws_instance" "ssh_tunnel" {
    ami                         = data.aws_ami.amazon_linux.id
-   instance_type               = "t2.medium"
+   instance_type               = "t2.nano"
    subnet_id                   = aws_subnet.public.id
    associate_public_ip_address = true
    vpc_security_group_ids      = [aws_security_group.public_swarm_sg.id]
