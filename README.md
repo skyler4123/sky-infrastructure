@@ -3,7 +3,8 @@ terraform apply -auto-approve -var-file=terraform.tfvars
 terraform destroy -auto-approve -var-file=terraform.tfvars
 
 
-ssh -R 80:localhost:80 \
+ssh -i key_pair_01.pem \
+     -R 80:localhost:80 \
      -R 443:localhost:443 \
      -R 5432:localhost:5432 \
      -C \
@@ -12,14 +13,13 @@ ssh -R 80:localhost:80 \
      -o "ServerAliveCountMax=3" \
      -o "ControlMaster=auto" \
      -o "ControlPath=~/.ssh/control-%r@%h:%p" \
-     user@remote-server
+     ubuntu@@13.223.90.203
 
 ssh -i key_pair_01.pem \
      -N \
      -R 3000:localhost:3000 \
      -R 5432:localhost:5432 \
-     -C \
-     -c aes128-ctr \
+     -c chacha20-poly1305@openssh.com \
      -o "ServerAliveInterval=60" \
      -o "ServerAliveCountMax=3" \
      -o "ControlMaster=auto" \
