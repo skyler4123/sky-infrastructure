@@ -289,7 +289,17 @@ resource "aws_instance" "ssh_tunnel_ubuntu" {
   key_name                    = var.key_pair_name
   user_data                   = <<-EOF
    #!/bin/bash
-
+   # Set GatewayPorts to 'yes' in sshd_config and restart the service
+   # This allows remote forwarded ports to be bound to non-loopback addresses (0.0.0.0)
+   SSHD_CONFIG_FILE="/etc/ssh/sshd_config"
+   # Use sed to ensure 'GatewayPorts yes' is set. 
+   # The 's/^#GatewayPorts.*/GatewayPorts yes/' part uncomments and sets it if it exists
+   # The 't' jumps to end of script if a substitution was made
+   # The '$aGatewayPorts yes' adds it to the end if not found
+   sudo sed -i -e '/^#GatewayPorts/d' -e '/^GatewayPorts/d' $SSHD_CONFIG_FILE
+   echo "GatewayPorts yes" | sudo tee -a /etc/ssh/sshd_config
+   # Restart sshd service to apply the new configuration
+   systemctl restart sshd
    EOF
 
   tags = {
