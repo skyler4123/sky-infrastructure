@@ -140,6 +140,14 @@ resource "aws_security_group" "public_swarm_sg" {
     cidr_blocks = [var.vpc_cidr_block] # Swarm overlay network
   }
 
+  ingress {
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    # cidr_blocks = [var.vpc_cidr_block] # PostgreSQL internal access
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -149,66 +157,6 @@ resource "aws_security_group" "public_swarm_sg" {
 
   tags = {
     Name = "PublicSwarmSecurityGroup"
-  }
-}
-
-# Security group for private nodes (postgres_primary and postgres_replica)
-resource "aws_security_group" "private_swarm_sg" {
-  name        = "private_swarm_security_group"
-  description = "Allow internal SSH, Swarm, and PostgreSQL traffic"
-  vpc_id      = aws_vpc.main.id
-
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr_block] # SSH only from VPC
-  }
-
-  ingress {
-    from_port   = 2377
-    to_port     = 2377
-    protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr_block] # Swarm management
-  }
-
-  ingress {
-    from_port   = 7946
-    to_port     = 7946
-    protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr_block] # Swarm node communication
-  }
-
-  ingress {
-    from_port   = 7946
-    to_port     = 7946
-    protocol    = "udp"
-    cidr_blocks = [var.vpc_cidr_block] # Swarm node communication
-  }
-
-  ingress {
-    from_port   = 4789
-    to_port     = 4789
-    protocol    = "udp"
-    cidr_blocks = [var.vpc_cidr_block] # Swarm overlay network
-  }
-
-  ingress {
-    from_port   = 5432
-    to_port     = 5432
-    protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr_block] # PostgreSQL internal access
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "PrivateSwarmSecurityGroup"
   }
 }
 
@@ -269,8 +217,8 @@ resource "aws_instance" "ssh_tunnel" {
    # The 's/^#GatewayPorts.*/GatewayPorts yes/' part uncomments and sets it if it exists
    # The 't' jumps to end of script if a substitution was made
    # The '$aGatewayPorts yes' adds it to the end if not found
-   sed -i -e '/^#GatewayPorts/d' -e '/^GatewayPorts/d' $SSHD_CONFIG_FILE
-   echo "GatewayPorts yes" >> $SSHD_CONFIG_FILE
+   sudo sed -i -e '/^#GatewayPorts/d' -e '/^GatewayPorts/d' $SSHD_CONFIG_FILE
+   echo "GatewayPorts yes" | sudo tee -a /etc/ssh/sshd_config
    # Restart sshd service to apply the new configuration
    systemctl restart sshd
    EOF

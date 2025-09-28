@@ -27,10 +27,10 @@ output "public_swarm_sg_id" {
   value       = aws_security_group.public_swarm_sg.id
 }
 
-output "private_swarm_sg_id" {
-  description = "The ID of the private swarm security group"
-  value       = aws_security_group.private_swarm_sg.id
-}
+# output "private_swarm_sg_id" {
+#   description = "The ID of the private swarm security group"
+#   value       = aws_security_group.private_swarm_sg.id
+# }
 
 # EC2 Instance Outputs
 output "ssh_tunnel_instance_id" {
