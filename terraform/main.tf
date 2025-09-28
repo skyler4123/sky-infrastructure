@@ -4,6 +4,11 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 4.0"
     }
+    # NOTE: The external data source requires the 'external' provider
+    external = {
+      source  = "hashicorp/external"
+      version = "~> 2.3"
+    }
   }
 }
 
@@ -269,37 +274,64 @@ resource "aws_instance" "swarm_manager" {
   }
 }
 
-# Resource to get the token and save it to a local file
-resource "null_resource" "swarm_join_token" {
+# --- DYNAMICALLY RETRIEVE SWARM WORKER TOKEN ---
+# resource "null_resource" "swarm_join_token" {
+#   depends_on = [aws_instance.swarm_manager]
+
+#   triggers = {
+#     # This dummy trigger ensures the provisioner runs when the IP changes
+#     manager_public_ip = aws_instance.swarm_manager.public_ip
+#   }
+  
+#   provisioner "local-exec" {
+#     # Replace the connection and remote-exec with this local-exec to handle the SSH command
+#     command = <<-EOT
+#       echo "Waiting for manager to initialize Swarm..."
+#       sleep 30
+
+#       MANAGER_IP="${self.triggers.manager_public_ip}"
+#       TOKEN_PATH="${var.docker_swarm_join_token_path}"
+      
+#       # SSH to manager, get the token, and write it to a local file
+#       WORKER_TOKEN=$(ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${var.ssh_private_key_path} ec2-user@$MANAGER_IP "docker swarm join-token worker -q")
+      
+#       if [ -z "$WORKER_TOKEN" ]; then
+#         echo "Failed to retrieve worker token!"
+#         exit 1
+#       fi
+      
+#       # Write the token to the local file
+#       echo "$WORKER_TOKEN" > $TOKEN_PATH
+#       echo "Swarm token saved to $TOKEN_PATH"
+#     EOT
+#   }
+# }
+# This external data source executes a local command (SSH) to the manager,
+# gets the worker token, and exposes it as a variable for the worker user_data.
+data "external" "swarm_worker_token" {
+  # Depends on the manager instance being up and the swarm initialized
   depends_on = [aws_instance.swarm_manager]
 
-  triggers = {
-    # This dummy trigger ensures the provisioner runs when the IP changes
-    manager_public_ip = aws_instance.swarm_manager.public_ip
-  }
-  
-  provisioner "local-exec" {
-    # Replace the connection and remote-exec with this local-exec to handle the SSH command
-    command = <<-EOT
-      echo "Waiting for manager to initialize Swarm..."
-      sleep 30
-
-      MANAGER_IP="${self.triggers.manager_public_ip}"
-      TOKEN_PATH="${var.docker_swarm_join_token_path}"
-      
-      # SSH to manager, get the token, and write it to a local file
-      WORKER_TOKEN=$(ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${var.ssh_private_key_path} ec2-user@$MANAGER_IP "docker swarm join-token worker -q")
-      
-      if [ -z "$WORKER_TOKEN" ]; then
-        echo "Failed to retrieve worker token!"
-        exit 1
-      fi
-      
-      # Write the token to the local file
-      echo "$WORKER_TOKEN" > $TOKEN_PATH
-      echo "Swarm token saved to $TOKEN_PATH"
-    EOT
-  }
+  program = ["bash", "-c", <<-EOT
+    MANAGER_IP="${aws_instance.swarm_manager.public_ip}"
+    SSH_KEY_PATH="${var.ssh_private_key_path}"
+    
+    echo "Waiting 30 seconds for Swarm Manager to initialize..." >&2
+    sleep 30
+    
+    # SSH to the manager and retrieve the worker join token
+    # We retrieve the full command, not just the token, for flexibility
+    JOIN_COMMAND=$(ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i $SSH_KEY_PATH ec2-user@$MANAGER_IP "docker swarm join-token worker --quiet")
+    
+    if [ -z "$JOIN_COMMAND" ]; then
+      echo "Failed to retrieve worker token!" >&2
+      exit 1
+    fi
+    
+    # Output the token as JSON for Terraform to consume
+    echo "{\"token\": \"$JOIN_COMMAND\"}"
+  EOT
+  ]
 }
 
 resource "aws_instance" "traefik_node" {
@@ -309,7 +341,21 @@ resource "aws_instance" "traefik_node" {
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.public_swarm_sg.id]
   key_name                    = var.key_pair_name
-  user_data                   = local.setup_docker_script
+  # --- UPDATED USER_DATA TO JOIN SWARM AT BOOT ---
+  user_data                   = <<-EOF
+    ${local.setup_docker_script}
+    
+    # Manager Private IP for Swarm communication (available via resource reference)
+    MANAGER_PRIVATE_IP="${aws_instance.swarm_manager.private_ip}"
+    
+    # Swarm Worker Join Token (retrieved via external data source)
+    WORKER_TOKEN="${data.external.swarm_worker_token.result.token}"
+    
+    # Join the swarm using the token and the manager's private IP
+    # The full command is docker swarm join --token <token> <manager_ip>:2377
+    docker swarm join --token $WORKER_TOKEN $MANAGER_PRIVATE_IP:2377
+    EOF
+  # ----------------------------------------------
   depends_on                  = [aws_instance.swarm_manager]
   tags = {
     Name = "TraefikNode"
@@ -323,7 +369,21 @@ resource "aws_instance" "postgres_primary" {
   associate_public_ip_address = false
   vpc_security_group_ids      = [aws_security_group.private_swarm_sg.id]
   key_name                    = var.key_pair_name
-  user_data                   = local.setup_docker_script
+  # --- UPDATED USER_DATA TO JOIN SWARM AT BOOT ---
+  user_data                   = <<-EOF
+    ${local.setup_docker_script}
+    
+    # Manager Private IP for Swarm communication (available via resource reference)
+    MANAGER_PRIVATE_IP="${aws_instance.swarm_manager.private_ip}"
+    
+    # Swarm Worker Join Token (retrieved via external data source)
+    WORKER_TOKEN="${data.external.swarm_worker_token.result.token}"
+    
+    # Join the swarm using the token and the manager's private IP
+    # The full command is docker swarm join --token <token> <manager_ip>:2377
+    docker swarm join --token $WORKER_TOKEN $MANAGER_PRIVATE_IP:2377
+    EOF
+  # ----------------------------------------------
   depends_on                  = [aws_instance.swarm_manager]
   tags = {
     Name = "PostgresPrimary"
@@ -337,7 +397,21 @@ resource "aws_instance" "postgres_replica" {
   associate_public_ip_address = false
   vpc_security_group_ids      = [aws_security_group.private_swarm_sg.id]
   key_name                    = var.key_pair_name
-  user_data                   = local.setup_docker_script
+  # --- UPDATED USER_DATA TO JOIN SWARM AT BOOT ---
+  user_data                   = <<-EOF
+    ${local.setup_docker_script}
+    
+    # Manager Private IP for Swarm communication (available via resource reference)
+    MANAGER_PRIVATE_IP="${aws_instance.swarm_manager.private_ip}"
+    
+    # Swarm Worker Join Token (retrieved via external data source)
+    WORKER_TOKEN="${data.external.swarm_worker_token.result.token}"
+    
+    # Join the swarm using the token and the manager's private IP
+    # The full command is docker swarm join --token <token> <manager_ip>:2377
+    docker swarm join --token $WORKER_TOKEN $MANAGER_PRIVATE_IP:2377
+    EOF
+  # ----------------------------------------------
   depends_on                  = [aws_instance.swarm_manager]
   tags = {
     Name = "PostgresReplica"
@@ -348,6 +422,8 @@ resource "aws_instance" "postgres_replica" {
 # Null Resource to Orchestrate Swarm Join via SSH
 # -----------------------------------------------------------------------------
 
+# The following commented block is now largely redundant since the worker nodes
+# join automatically via user_data, but it remains here for reference.
 # resource "null_resource" "swarm_cluster_joiner" {
 
   # # This ensures the provisioner only runs after all instances are created.

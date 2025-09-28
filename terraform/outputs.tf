@@ -78,3 +78,8 @@ output "replica_1_dns_name" {
   description = "The DNS name for replica-1.skyceer.com"
   value       = aws_route53_record.replica_1.name
 }
+
+output "token" {
+  description = "TESTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"
+  value       = data.external.swarm_worker_token.result.token
+}
