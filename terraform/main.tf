@@ -269,34 +269,36 @@ resource "aws_instance" "swarm_manager" {
   }
 }
 
+# Resource to get the token and save it to a local file
 resource "null_resource" "swarm_join_token" {
-  # This ensures the token is fetched only after the manager is fully set up
   depends_on = [aws_instance.swarm_manager]
 
-  # SSH connection details for the manager node
-  connection {
-    type        = "ssh"
-    user        = "ec2-user"
-    private_key = file(var.ssh_private_key_path)
-    host        = aws_instance.swarm_manager.public_ip
+  triggers = {
+    # This dummy trigger ensures the provisioner runs when the IP changes
+    manager_public_ip = aws_instance.swarm_manager.public_ip
   }
   
-  # Provisioner to fetch the token and save it to a local file/variable
-  provisioner "remote-exec" {
-    inline = [
-      "sleep 10", # Give docker a moment to fully initialize the swarm
-      # Generate the token and store it in an environment variable
-      "WORKER_TOKEN=$(docker swarm join-token worker -q)", 
-      # Print the token to the terminal where Terraform can capture it
-      "echo 'WORKER_TOKEN_OUTPUT:'$WORKER_TOKEN" 
-    ]
-  }
+  provisioner "local-exec" {
+    # Replace the connection and remote-exec with this local-exec to handle the SSH command
+    command = <<-EOT
+      echo "Waiting for manager to initialize Swarm..."
+      sleep 30
 
-  # Triggers capture the output of the remote-exec to make it accessible
-  # We use the regex match to extract the token from the remote-exec output
-  triggers = {
-    # The token is captured here from the remote-exec output
-    worker_join_token = regex("WORKER_TOKEN_OUTPUT:(.*)", self.triggers.worker_join_token)[1]
+      MANAGER_IP="${self.triggers.manager_public_ip}"
+      TOKEN_PATH="${var.docker_swarm_join_token_path}"
+      
+      # SSH to manager, get the token, and write it to a local file
+      WORKER_TOKEN=$(ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${var.ssh_private_key_path} ec2-user@$MANAGER_IP "docker swarm join-token worker -q")
+      
+      if [ -z "$WORKER_TOKEN" ]; then
+        echo "Failed to retrieve worker token!"
+        exit 1
+      fi
+      
+      # Write the token to the local file
+      echo "$WORKER_TOKEN" > $TOKEN_PATH
+      echo "Swarm token saved to $TOKEN_PATH"
+    EOT
   }
 }
 

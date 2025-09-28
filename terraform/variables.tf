@@ -53,3 +53,8 @@ variable "private_subnet_cidr_block" {
   type        = string
   default     = "10.0.2.0/24"
 }
+variable "docker_swarm_join_token_path" {
+  description = "The local path of Docker Swarm Join Token path"
+  type        = string
+  default     = ".ignore/docker_swarm_join_token.txt"
+}
