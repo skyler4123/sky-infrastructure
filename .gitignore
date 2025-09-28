@@ -1,7 +1,13 @@
-*/.terraform
-*/*.tfvars
-*/terraform.tfstate
-*/terraform.tfstate.backup
-*/.terraform.tfstate.lock.info
+# Ignore all files and directories named '.terraform' anywhere
+**/.terraform/
+
+# Ignore all files ending in '.tfvars' anywhere
+**/*.tfvars
+
+# Ignore specific terraform state files anywhere
+**/terraform.tfstate
+**/terraform.tfstate.backup
+**/.terraform.tfstate.lock.info
+
+# Ignore local ignore files
 .ignore
-*/.ignore
