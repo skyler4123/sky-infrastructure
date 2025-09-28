@@ -239,12 +239,29 @@ data "aws_ami" "amazon_linux" {
 # Generic user_data for all worker nodes
 locals {
   setup_docker_script = <<-EOF
-     #!/bin/bash
      yum update -y
      yum install -y docker
      service docker start
      usermod -a -G docker ec2-user
      chkconfig docker on
+     EOF
+  init_docker_swarm_script = <<-EOF
+    # Fetch the private IP dynamically
+    PRIVATE_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
+    
+    # Initialize Docker Swarm with the private IP
+    docker swarm init --advertise-addr $PRIVATE_IP
+     EOF
+  join_docker_swarm_script = <<-EOF
+    # Manager Private IP for Swarm communication (available via resource reference)
+    MANAGER_PRIVATE_IP="${aws_instance.swarm_manager.private_ip}"
+    
+    # Swarm Worker Join Token (retrieved via external data source)
+    WORKER_TOKEN="${data.external.swarm_worker_token.result.token}"
+    
+    # Join the swarm using the token and the manager's private IP
+    # The full command is docker swarm join --token <token> <manager_ip>:2377
+    docker swarm join --token $WORKER_TOKEN $MANAGER_PRIVATE_IP:2377
      EOF
 }
 
@@ -260,13 +277,9 @@ resource "aws_instance" "swarm_manager" {
   vpc_security_group_ids      = [aws_security_group.public_swarm_sg.id]
   key_name                    = var.key_pair_name
   user_data                   = <<-EOF
+    #!/bin/bash
     ${local.setup_docker_script}
-    
-    # Fetch the private IP dynamically
-    PRIVATE_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
-    
-    # Initialize Docker Swarm with the private IP
-    docker swarm init --advertise-addr $PRIVATE_IP
+    ${local.init_docker_swarm_script}
     EOF
 
   tags = {
@@ -343,17 +356,9 @@ resource "aws_instance" "traefik_node" {
   key_name                    = var.key_pair_name
   # --- UPDATED USER_DATA TO JOIN SWARM AT BOOT ---
   user_data                   = <<-EOF
+    #!/bin/bash
     ${local.setup_docker_script}
-    
-    # Manager Private IP for Swarm communication (available via resource reference)
-    MANAGER_PRIVATE_IP="${aws_instance.swarm_manager.private_ip}"
-    
-    # Swarm Worker Join Token (retrieved via external data source)
-    WORKER_TOKEN="${data.external.swarm_worker_token.result.token}"
-    
-    # Join the swarm using the token and the manager's private IP
-    # The full command is docker swarm join --token <token> <manager_ip>:2377
-    docker swarm join --token $WORKER_TOKEN $MANAGER_PRIVATE_IP:2377
+    ${local.join_docker_swarm_script}
     EOF
   # ----------------------------------------------
   depends_on                  = [aws_instance.swarm_manager]
@@ -371,17 +376,9 @@ resource "aws_instance" "postgres_primary" {
   key_name                    = var.key_pair_name
   # --- UPDATED USER_DATA TO JOIN SWARM AT BOOT ---
   user_data                   = <<-EOF
+    #!/bin/bash
     ${local.setup_docker_script}
-    
-    # Manager Private IP for Swarm communication (available via resource reference)
-    MANAGER_PRIVATE_IP="${aws_instance.swarm_manager.private_ip}"
-    
-    # Swarm Worker Join Token (retrieved via external data source)
-    WORKER_TOKEN="${data.external.swarm_worker_token.result.token}"
-    
-    # Join the swarm using the token and the manager's private IP
-    # The full command is docker swarm join --token <token> <manager_ip>:2377
-    docker swarm join --token $WORKER_TOKEN $MANAGER_PRIVATE_IP:2377
+    ${local.join_docker_swarm_script}
     EOF
   # ----------------------------------------------
   depends_on                  = [aws_instance.swarm_manager]
@@ -399,17 +396,9 @@ resource "aws_instance" "postgres_replica" {
   key_name                    = var.key_pair_name
   # --- UPDATED USER_DATA TO JOIN SWARM AT BOOT ---
   user_data                   = <<-EOF
+    #!/bin/bash
     ${local.setup_docker_script}
-    
-    # Manager Private IP for Swarm communication (available via resource reference)
-    MANAGER_PRIVATE_IP="${aws_instance.swarm_manager.private_ip}"
-    
-    # Swarm Worker Join Token (retrieved via external data source)
-    WORKER_TOKEN="${data.external.swarm_worker_token.result.token}"
-    
-    # Join the swarm using the token and the manager's private IP
-    # The full command is docker swarm join --token <token> <manager_ip>:2377
-    docker swarm join --token $WORKER_TOKEN $MANAGER_PRIVATE_IP:2377
+    ${local.join_docker_swarm_script}
     EOF
   # ----------------------------------------------
   depends_on                  = [aws_instance.swarm_manager]
