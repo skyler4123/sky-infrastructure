@@ -52,13 +52,13 @@ resource "aws_subnet" "public" {
   }
 }
 
-resource "aws_subnet" "private" {
-  vpc_id     = aws_vpc.main.id
-  cidr_block = var.private_subnet_cidr_block
-  tags = {
-    Name = "MyVPC_PrivateSubnet"
-  }
-}
+# resource "aws_subnet" "private" {
+#   vpc_id     = aws_vpc.main.id
+#   cidr_block = var.private_subnet_cidr_block
+#   tags = {
+#     Name = "MyVPC_PrivateSubnet"
+#   }
+# }
 
 # Create a route table for the public subnet to route traffic to the internet
 resource "aws_route_table" "public" {
@@ -158,64 +158,64 @@ resource "aws_security_group" "public_swarm_sg" {
 }
 
 # Security group for private nodes (postgres_primary and postgres_replica)
-resource "aws_security_group" "private_swarm_sg" {
-  name        = "private_swarm_security_group"
-  description = "Allow internal SSH, Swarm, and PostgreSQL traffic"
-  vpc_id      = aws_vpc.main.id
+# resource "aws_security_group" "private_swarm_sg" {
+#   name        = "private_swarm_security_group"
+#   description = "Allow internal SSH, Swarm, and PostgreSQL traffic"
+#   vpc_id      = aws_vpc.main.id
 
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr_block] # SSH only from VPC
-  }
+#   ingress {
+#     from_port   = 22
+#     to_port     = 22
+#     protocol    = "tcp"
+#     cidr_blocks = [var.vpc_cidr_block] # SSH only from VPC
+#   }
 
-  ingress {
-    from_port   = 2377
-    to_port     = 2377
-    protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr_block] # Swarm management
-  }
+#   ingress {
+#     from_port   = 2377
+#     to_port     = 2377
+#     protocol    = "tcp"
+#     cidr_blocks = [var.vpc_cidr_block] # Swarm management
+#   }
 
-  ingress {
-    from_port   = 7946
-    to_port     = 7946
-    protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr_block] # Swarm node communication
-  }
+#   ingress {
+#     from_port   = 7946
+#     to_port     = 7946
+#     protocol    = "tcp"
+#     cidr_blocks = [var.vpc_cidr_block] # Swarm node communication
+#   }
 
-  ingress {
-    from_port   = 7946
-    to_port     = 7946
-    protocol    = "udp"
-    cidr_blocks = [var.vpc_cidr_block] # Swarm node communication
-  }
+#   ingress {
+#     from_port   = 7946
+#     to_port     = 7946
+#     protocol    = "udp"
+#     cidr_blocks = [var.vpc_cidr_block] # Swarm node communication
+#   }
 
-  ingress {
-    from_port   = 4789
-    to_port     = 4789
-    protocol    = "udp"
-    cidr_blocks = [var.vpc_cidr_block] # Swarm overlay network
-  }
+#   ingress {
+#     from_port   = 4789
+#     to_port     = 4789
+#     protocol    = "udp"
+#     cidr_blocks = [var.vpc_cidr_block] # Swarm overlay network
+#   }
 
-  ingress {
-    from_port   = 5432
-    to_port     = 5432
-    protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr_block] # PostgreSQL internal access
-  }
+#   ingress {
+#     from_port   = 5432
+#     to_port     = 5432
+#     protocol    = "tcp"
+#     cidr_blocks = [var.vpc_cidr_block] # PostgreSQL internal access
+#   }
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+#   egress {
+#     from_port   = 0
+#     to_port     = 0
+#     protocol    = "-1"
+#     cidr_blocks = ["0.0.0.0/0"]
+#   }
 
-  tags = {
-    Name = "PrivateSwarmSecurityGroup"
-  }
-}
+#   tags = {
+#     Name = "PrivateSwarmSecurityGroup"
+#   }
+# }
 
 # -----------------------------------------------------------------------------
 # AMI Data Source
@@ -354,12 +354,11 @@ resource "aws_instance" "traefik_node" {
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.public_swarm_sg.id]
   key_name                    = var.key_pair_name
-  # --- UPDATED USER_DATA TO JOIN SWARM AT BOOT ---
   user_data                   = <<-EOF
     #!/bin/bash
     ${local.setup_docker_script}
     ${local.join_docker_swarm_script}
-    EOF
+    EOF 
   # ----------------------------------------------
   depends_on                  = [aws_instance.swarm_manager]
   tags = {
@@ -370,11 +369,10 @@ resource "aws_instance" "traefik_node" {
 resource "aws_instance" "postgres_primary" {
   ami                         = data.aws_ami.amazon_linux.id
   instance_type               = "t2.medium"
-  subnet_id                   = aws_subnet.private.id
-  associate_public_ip_address = false
-  vpc_security_group_ids      = [aws_security_group.private_swarm_sg.id]
+  subnet_id                   = aws_subnet.public.id
+  associate_public_ip_address = true
+  vpc_security_group_ids      = [aws_security_group.public_swarm_sg.id]
   key_name                    = var.key_pair_name
-  # --- UPDATED USER_DATA TO JOIN SWARM AT BOOT ---
   user_data                   = <<-EOF
     #!/bin/bash
     ${local.setup_docker_script}
@@ -390,11 +388,10 @@ resource "aws_instance" "postgres_primary" {
 resource "aws_instance" "postgres_replica" {
   ami                         = data.aws_ami.amazon_linux.id
   instance_type               = "t2.medium"
-  subnet_id                   = aws_subnet.private.id
-  associate_public_ip_address = false
-  vpc_security_group_ids      = [aws_security_group.private_swarm_sg.id]
+  subnet_id                   = aws_subnet.public.id
+  associate_public_ip_address = true
+  vpc_security_group_ids      = [aws_security_group.public_swarm_sg.id]
   key_name                    = var.key_pair_name
-  # --- UPDATED USER_DATA TO JOIN SWARM AT BOOT ---
   user_data                   = <<-EOF
     #!/bin/bash
     ${local.setup_docker_script}

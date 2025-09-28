@@ -16,10 +16,10 @@ output "public_subnet_id" {
   value       = aws_subnet.public.id
 }
 
-output "private_subnet_id" {
-  description = "The ID of the private subnet"
-  value       = aws_subnet.private.id
-}
+# output "private_subnet_id" {
+#   description = "The ID of the private subnet"
+#   value       = aws_subnet.private.id
+# }
 
 # Security Group Outputs
 output "public_swarm_sg_id" {
@@ -27,10 +27,10 @@ output "public_swarm_sg_id" {
   value       = aws_security_group.public_swarm_sg.id
 }
 
-output "private_swarm_sg_id" {
-  description = "The ID of the private swarm security group"
-  value       = aws_security_group.private_swarm_sg.id
-}
+# output "private_swarm_sg_id" {
+#   description = "The ID of the private swarm security group"
+#   value       = aws_security_group.private_swarm_sg.id
+# }
 
 # EC2 Instance Outputs
 output "swarm_manager_instance_id" {
