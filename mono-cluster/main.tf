@@ -200,37 +200,9 @@ data "aws_ami" "ubuntu_22_04_lts" {
 # -----------------------------------------------------------------------------
 # EC2 Instances for Docker Swarm Cluster
 # -----------------------------------------------------------------------------
-
-resource "aws_instance" "ssh_tunnel" {
-  ami                         = data.aws_ami.amazon_linux.id
-  instance_type               = "t2.nano"
-  subnet_id                   = aws_subnet.public.id
-  associate_public_ip_address = true
-  vpc_security_group_ids      = [aws_security_group.public_swarm_sg.id]
-  key_name                    = var.key_pair_name
-  user_data                   = <<-EOF
-   #!/bin/bash
-   # Set GatewayPorts to 'yes' in sshd_config and restart the service
-   # This allows remote forwarded ports to be bound to non-loopback addresses (0.0.0.0)
-   SSHD_CONFIG_FILE="/etc/ssh/sshd_config"
-   # Use sed to ensure 'GatewayPorts yes' is set. 
-   # The 's/^#GatewayPorts.*/GatewayPorts yes/' part uncomments and sets it if it exists
-   # The 't' jumps to end of script if a substitution was made
-   # The '$aGatewayPorts yes' adds it to the end if not found
-   sudo sed -i -e '/^#GatewayPorts/d' -e '/^GatewayPorts/d' $SSHD_CONFIG_FILE
-   echo "GatewayPorts yes" | sudo tee -a /etc/ssh/sshd_config
-   # Restart sshd service to apply the new configuration
-   systemctl restart sshd
-   EOF
-
-  tags = {
-    Name = "SSH Tunnel"
-  }
-}
-
 resource "aws_instance" "ssh_tunnel_ubuntu" {
   ami                         = data.aws_ami.ubuntu_22_04_lts.id
-  instance_type               = "t2.nano"
+  instance_type               = "t2.micro"
   subnet_id                   = aws_subnet.public.id
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.public_swarm_sg.id]
@@ -261,7 +233,7 @@ resource "aws_instance" "ssh_tunnel_ubuntu" {
 
 resource "null_resource" "post_apply_message" {
   depends_on = [
-    aws_instance.ssh_tunnel
+    aws_instance.ssh_tunnel_ubuntu
   ]
 
   provisioner "local-exec" {
@@ -287,7 +259,7 @@ resource "aws_route53_record" "default" {
   name    = "skyceer.com"
   type    = "A"
   ttl     = 300
-  records = [aws_instance.ssh_tunnel.public_ip]
+  records = [aws_instance.ssh_tunnel_ubuntu.public_ip]
 }
 
 # Route 53 A record for app.skyceer.com
@@ -296,7 +268,7 @@ resource "aws_route53_record" "app" {
   name    = "app.skyceer.com"
   type    = "A"
   ttl     = 300
-  records = [aws_instance.ssh_tunnel.public_ip]
+  records = [aws_instance.ssh_tunnel_ubuntu.public_ip]
 }
 
 # Route 53 A record for primary.skyceer.com
@@ -305,7 +277,7 @@ resource "aws_route53_record" "primary" {
   name    = "primary.skyceer.com"
   type    = "A"
   ttl     = 300
-  records = [aws_instance.ssh_tunnel.public_ip]
+  records = [aws_instance.ssh_tunnel_ubuntu.public_ip]
 }
 
 # Route 53 A record for replica-1.skyceer.com
@@ -314,5 +286,5 @@ resource "aws_route53_record" "replica_1" {
   name    = "replica-1.skyceer.com"
   type    = "A"
   ttl     = 300
-  records = [aws_instance.ssh_tunnel.public_ip]
+  records = [aws_instance.ssh_tunnel_ubuntu.public_ip]
 }
