@@ -228,22 +228,6 @@ resource "aws_instance" "ssh_tunnel_ubuntu" {
 }
 
 # -----------------------------------------------------------------------------
-# Resource to Print Custom Message After Apply
-# -----------------------------------------------------------------------------
-
-resource "null_resource" "post_apply_message" {
-  depends_on = [
-    aws_instance.ssh_tunnel_ubuntu
-  ]
-
-  provisioner "local-exec" {
-    command = <<-EOF
-      echo "Terraform apply completed successfully!"
-    EOF
-  }
-}
-
-# -----------------------------------------------------------------------------
 # Route 53 DNS Records for Subdomains
 # -----------------------------------------------------------------------------
 
