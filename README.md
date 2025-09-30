@@ -26,4 +26,4 @@ ssh -i "~/Documents/aws/key_pair_01.pem" \
      -o "ControlPath=~/.ssh/control-%r@%h:%p" \
      ubuntu@13.218.108.84
 
-ssh -R 5432:localhost:5432 -i "~/Documents/aws/key_pair_01.pem" ubuntu@13.218.206.118
+ssh -i "~/Documents/aws/key_pair_01.pem" ubuntu@54.224.255.124
