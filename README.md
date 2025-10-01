@@ -17,6 +17,8 @@ ssh -i "~/Documents/aws/key_pair_01.pem" \
 
 ssh -i "~/Documents/aws/key_pair_01.pem" \
      -N \
+     -R 80:localhost:80 \
+     -R 443:localhost:443 \
      -R 3000:localhost:3000 \
      -R 5432:localhost:5432 \
      -c aes128-gcm@openssh.com \
@@ -24,6 +26,6 @@ ssh -i "~/Documents/aws/key_pair_01.pem" \
      -o "ServerAliveCountMax=3" \
      -o "ControlMaster=auto" \
      -o "ControlPath=~/.ssh/control-%r@%h:%p" \
-     ubuntu@13.218.108.84
+     ubuntu@13.222.200.116
 
 ssh -i "~/Documents/aws/key_pair_01.pem" ubuntu@54.224.255.124
