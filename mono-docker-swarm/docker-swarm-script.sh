@@ -38,4 +38,9 @@ docker swarm init --autolock --cert-expiry 8760h0m0s --advertise-addr 10.0.43.15
 
 docker node update --label-add node_rule=postgresql_master <node_id>
 docker node update --label-add node_rule=postgresql_slave_1 <node_id>
+
+docker swarm init
+docker stack deploy -c portainer-stack.yml portainer-stack
+docker stack deploy -c traefik-stack.yml traefik-stack
+
 docker stack deploy -c postgres-stack.yml postgres-stack

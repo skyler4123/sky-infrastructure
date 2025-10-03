@@ -84,17 +84,10 @@ services:
         - "traefik.enable=true"
 
         # Dashboard router
-        - "traefik.http.routers.dashboard.rule=Host(`dashboard.swarm.localhost`)"
-        - "traefik.http.routers.dashboard.entrypoints=websecure"
-        - "traefik.http.routers.dashboard.service=api@internal"
-        - "traefik.http.routers.dashboard.tls=true"
-
-        # Basic‑auth middleware
-        - "traefik.http.middlewares.dashboard-auth.basicauth.users=<PASTE_HASH_HERE>"
-        - "traefik.http.routers.dashboard.middlewares=dashboard-auth@swarm"
-
-        # Service hint
-        - "traefik.http.services.traefik.loadbalancer.server.port=8080"
+        - "traefik.http.routers.portainer.rule=Host(`traefik.skyceer.com`)"
+        - "traefik.http.routers.portainer.entrypoints=websecure"
+        - "traefik.http.routers.portainer.service=api@internal"
+        - "traefik.http.routers.portainer.tls=true"
 
   # Deploy the Whoami application
   whoami:
@@ -106,7 +99,7 @@ services:
         # Enable Service discovery for Traefik
         - "traefik.enable=true"
         # Define the WHoami router rule
-        - "traefik.http.routers.whoami.rule=Host(`whoami.swarm.localhost`)"
+        - "traefik.http.routers.whoami.rule=Host(`whoami.skyceer.com`)"
         # Expose Whoami on the HTTPS entrypoint
         - "traefik.http.routers.whoami.entrypoints=websecure"
         # Enable TLS

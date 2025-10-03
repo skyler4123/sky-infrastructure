@@ -29,6 +29,17 @@ services:
       replicas: 1
       placement:
         constraints: [node.role == manager]
+      labels:
+        # Enable Service discovery for Traefik
+        - "traefik.enable=true"
+        # Define the portainer router rule
+        - "traefik.http.routers.portainer.rule=Host(`portainer.skyceer.com`)"
+        # Expose portainer on the HTTPS entrypoint
+        - "traefik.http.routers.portainer.entrypoints=websecure"
+        # Enable TLS
+        - "traefik.http.routers.portainer.tls=true"
+        # Expose the portainer port number to Traefik
+        - traefik.http.services.portainer.loadbalancer.server.port=9443
 
 networks:
   agent_network:
