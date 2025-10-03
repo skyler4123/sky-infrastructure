@@ -38,7 +38,7 @@ ssh -N \
      -o "ServerAliveCountMax=3" \
      -o "ControlMaster=auto" \
      -o "ControlPath=~/.ssh/control-%r@%h:%p" \
-     root@159.223.39.6
+     root@138.68.1.92
 
 ssh root@159.223.39.6
 ssh -i "~/Documents/aws/key_pair_01.pem" ubuntu@54.224.255.124
