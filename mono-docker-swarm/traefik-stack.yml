@@ -23,7 +23,7 @@ services:
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
       # Add Let’s Encrypt resolver configuration
-      - "--certificatesresolvers.letsencrypt.acme.email=your-email@example.com"
+      - "--certificatesresolvers.letsencrypt.acme.email=pkphung2001@gmail.com"
       - "--certificatesresolvers.letsencrypt.acme.storage=/etc/traefik/acme.json"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
     networks:
@@ -58,6 +58,11 @@ services:
         - "traefik.http.routers.whoami.tls=true" # Enable TLS
         - "traefik.http.routers.whoami.tls.certresolver=letsencrypt" # Use Let’s Encrypt resolver
         - "traefik.http.services.whoami.loadbalancer.server.port=80"
+        # HTTP to HTTPS redirect
+        - "traefik.http.routers.whoami-http.rule=Host(`whoami.skyceer.com`)"
+        - "traefik.http.routers.whoami-http.entrypoints=web"
+        - "traefik.http.routers.whoami-http.middlewares=redirect-to-https"
+        - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 
 networks:
   traefik_net:
