@@ -16,12 +16,18 @@ services:
     networks:
       - postgres_network
     deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.postgresql-master.rule=Host(`postgresql-master.skyceer.com`)"
+        - "traefik.http.routers.postgresql-master.entrypoints=websecure" # Changed to websecure (port 443)
+        - "traefik.http.routers.postgresql-master.tls=true" # Enable TLS
+        - "traefik.http.routers.postgresql-master.tls.certresolver=letsencrypt" # Use Let’s Encrypt resolver
       mode: replicated
       replicas: 1
       placement:
         constraints:
           - node.role == manager
-          # - node.labels.node_rule == postgresql_master
+          # - node.labels.hostname == postgresql_master
 
   postgresql-slave-1:
     image: bitnami/postgresql:latest
@@ -42,12 +48,18 @@ services:
     networks:
       - postgres_network
     deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.postgresql-slave-1.rule=Host(`postgresql-slave-1.skyceer.com`)"
+        - "traefik.http.routers.postgresql-slave-1.entrypoints=websecure" # Changed to websecure (port 443)
+        - "traefik.http.routers.postgresql-slave-1.tls=true" # Enable TLS
+        - "traefik.http.routers.postgresql-slave-1.tls.certresolver=letsencrypt" # Use Let’s Encrypt resolver
       mode: replicated
       replicas: 1
       placement:
         constraints:
-          - node.role == worker
-          # - node.labels.node_rule == postgresql_slave_1
+          - node.role == manager
+          # - node.labels.hostname == postgresql-slave-1
 
 networks:
   postgres_network:
