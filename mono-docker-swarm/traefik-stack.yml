@@ -28,12 +28,14 @@ services:
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
+
+      - "--entrypoints.postgres.address=:5432"
       # Add Let’s Encrypt resolver configuration
       - "--certificatesresolvers.letsencrypt.acme.email=pkphung2001@gmail.com"
       - "--certificatesresolvers.letsencrypt.acme.storage=/etc/traefik/acme.json"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
     networks:
-      - traefik_net
+      - traefik_network
     deploy:
       mode: replicated
       replicas: 1
@@ -51,7 +53,7 @@ services:
   whoami:
     image: traefik/whoami
     networks:
-      - traefik_net
+      - traefik_network
     deploy:
       mode: replicated
       replicas: 1
@@ -74,7 +76,7 @@ services:
         # - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 
 networks:
-  traefik_net:
+  traefik_network:
     driver: overlay
     attachable: true
 

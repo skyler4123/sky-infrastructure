@@ -15,13 +15,15 @@ services:
       - POSTGRESQL_PASSWORD=password
     networks:
       - postgres_network
+      - traefik_network
     deploy:
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.postgresql-master.rule=Host(`postgresql-master.skyceer.com`)"
-        - "traefik.http.routers.postgresql-master.entrypoints=websecure" # Changed to websecure (port 443)
-        - "traefik.http.routers.postgresql-master.tls=true" # Enable TLS
-        - "traefik.http.routers.postgresql-master.tls.certresolver=letsencrypt" # Use Let’s Encrypt resolver
+        - "traefik.tcp.routers.postgresql-master.rule=HostSNI(`postgresql-master.skyceer.com`)"
+        - "traefik.tcp.routers.postgresql-master.entrypoints=postgres"
+        - "traefik.tcp.routers.postgresql-master.tls=true"
+        - "traefik.tcp.routers.postgresql-master.tls.certresolver=letsencrypt"
+        - "traefik.tcp.services.postgresql-master.loadbalancer.server.port=5432"
       mode: replicated
       replicas: 1
       placement:
@@ -47,13 +49,15 @@ services:
       - POSTGRESQL_MASTER_PORT_NUMBER=5432
     networks:
       - postgres_network
+      - traefik_network
     deploy:
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.postgresql-slave-1.rule=Host(`postgresql-slave-1.skyceer.com`)"
-        - "traefik.http.routers.postgresql-slave-1.entrypoints=websecure" # Changed to websecure (port 443)
-        - "traefik.http.routers.postgresql-slave-1.tls=true" # Enable TLS
-        - "traefik.http.routers.postgresql-slave-1.tls.certresolver=letsencrypt" # Use Let’s Encrypt resolver
+        - "traefik.tcp.routers.postgresql-slave-1.rule=HostSNI(`postgresql-slave-1.skyceer.com`)"
+        - "traefik.tcp.routers.postgresql-slave-1.entrypoints=postgres"
+        - "traefik.tcp.routers.postgresql-slave-1.tls=true"
+        - "traefik.tcp.routers.postgresql-slave-1.tls.certresolver=letsencrypt"
+        - "traefik.tcp.services.postgresql-slave-1.loadbalancer.server.port=5432"
       mode: replicated
       replicas: 1
       placement:
@@ -63,6 +67,9 @@ services:
 
 networks:
   postgres_network:
+    driver: overlay
+    attachable: true
+  traefik_network:
     driver: overlay
     attachable: true
 
