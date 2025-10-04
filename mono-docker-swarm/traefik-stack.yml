@@ -16,9 +16,13 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik_data:/etc/traefik
     command:
-      - "--api.insecure=true"
+      # - "--api.insecure=true"
       - "--providers.docker=true"
       - "--providers.docker.swarmMode=true"
+
+      # API & Dashboard
+      - "--api.dashboard=true" # Enable the dashboard
+      - "--api.insecure=false" # Explicitly disable insecure API mod
 
       # Configure HTTP to HTTPS Redirection
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
@@ -46,10 +50,18 @@ services:
         condition: on-failure
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.traefik.rule=Host(`traefik.skyceer.com`)"
-        - "traefik.http.routers.traefik.service=api@internal"
-        - "traefik.http.routers.traefik.entrypoints=web"
+        # - "traefik.http.routers.traefik.rule=Host(`traefik.skyceer.com`)"
+        # - "traefik.http.routers.traefik.service=api@internal"
+        # - "traefik.http.routers.traefik.entrypoints=web"
 
+        # Dashboard router
+        - "traefik.http.routers.traefik.rule=Host(`traefik.skyceer.com`)"
+        - "traefik.http.routers.traefik.entrypoints=websecure"
+        - "traefik.http.routers.traefik.service=api@internal"
+        - "traefik.http.routers.traefik.tls=true"
+
+          # Service hint
+        - "traefik.http.services.traefik.loadbalancer.server.port=8080"
   whoami:
     image: traefik/whoami
     networks:
