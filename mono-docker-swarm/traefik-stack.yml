@@ -12,10 +12,6 @@ services:
         published: 443
         protocol: tcp
         mode: host
-      - target: 5432
-        published: 5432
-        protocol: tcp
-        mode: host
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik_data:/etc/traefik
@@ -54,9 +50,6 @@ services:
         condition: on-failure
       labels:
         - "traefik.enable=true"
-        # - "traefik.http.routers.traefik.rule=Host(`traefik.skyceer.com`)"
-        # - "traefik.http.routers.traefik.service=api@internal"
-        # - "traefik.http.routers.traefik.entrypoints=web"
 
         # Dashboard router
         - "traefik.http.routers.traefik.rule=Host(`traefik.skyceer.com`)"
