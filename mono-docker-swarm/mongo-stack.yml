@@ -20,7 +20,14 @@ services:
         # as it is a single-replica service and requires stable storage.
         constraints:
           - node.role == manager
-
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.mongodb-primary.rule=Host(`mongodb-primary.skyceer.com`)"
+        - "traefik.http.routers.mongodb-primary.entrypoints=websecure" # Changed to websecure (port 443)
+        - "traefik.http.routers.mongodb-primary.tls=true" # Enable TLS
+        - "traefik.http.routers.mongodb-primary.tls.certresolver=letsencrypt" # Use Let’s Encrypt resolver
+        - "traefik.http.services.mongodb-primary.loadbalancer.server.port=27017"
+        
   mongodb-secondary:
     image: bitnami/mongodb:latest
     depends_on:
@@ -41,6 +48,13 @@ services:
         # as it is a single-replica service and requires stable storage.
         constraints:
           - node.role == manager
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.mongodb-secondary.rule=Host(`mongodb-secondary.skyceer.com`)"
+        - "traefik.http.routers.mongodb-secondary.entrypoints=websecure" # Changed to websecure (port 443)
+        - "traefik.http.routers.mongodb-secondary.tls=true" # Enable TLS
+        - "traefik.http.routers.mongodb-secondary.tls.certresolver=letsencrypt" # Use Let’s Encrypt resolver
+        - "traefik.http.services.mongodb-secondary.loadbalancer.server.port=27017"
 
   mongodb-arbiter:
     image: bitnami/mongodb:latest
