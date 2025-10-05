@@ -47,3 +47,10 @@ docker stack deploy -c grafana-stack.yml grafana-stack
 docker stack deploy -c mongo-stack.yml mongo-stack
 docker stack deploy -c search-stack.yml search-stack
 
+
+docker stack rm portainer-stack
+docker stack rm traefik-stack
+docker stack rm postgres-stack
+docker stack rm grafana-stack
+docker stack rm mongo-stack
+docker stack rm search-stack
