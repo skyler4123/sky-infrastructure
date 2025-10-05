@@ -1,11 +1,12 @@
-version: '3.7'
+version: '3.8'
 
 services:
   postgresql-master:
     image: bitnami/postgresql:latest
     hostname: web-host1111111
     ports:
-      - "5432:5432" # Published on port 5432 of the ingress network
+      # - "5432:5432" # Published on port 5432 of the ingress network
+      # - 5432
     volumes:
       - postgresql_master_data:/bitnami/postgresql
     environment:
