@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  opensearch:
+    image: opensearchproject/opensearch:3
+    environment:
+      #USERNAME: admin 
+      OPENSEARCH_INITIAL_ADMIN_PASSWORD: OpensearchPassword@1234
+      discovery.type: single-node
+      plugins.security.disabled: "true"
+      # DISABLE_SECURITY_PLUGIN: "true" # Disables Security plugin
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    volumes:
+      - es_data:/usr/share/opensearch/data
+    networks:
+      - search_network
+    deploy:
+      mode: replicated
+      replicas: 1
+      # placement:
+      #   constraints:
+      #     - node.role == worker
+      labels:
+        - "traefik.enable=true"
+        - "traefik.tcp.routers.opensearch.rule=HostSNI(`opensearch.skyceer.com`)"
+        - "traefik.tcp.routers.opensearch.entrypoints=postgres"
+        - "traefik.tcp.routers.opensearch.tls=true"
+        - "traefik.tcp.routers.opensearch.tls.certresolver=letsencrypt"
+        - "traefik.tcp.services.opensearch.loadbalancer.server.port=5432"
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:3
+    environment:
+      - 'OPENSEARCH_HOSTS=["http://opensearch:9200"]'
+      - "DISABLE_SECURITY_DASHBOARDS_PLUGIN=true"
+    ports:
+      - "5601:5601"
+    depends_on:
+      - opensearch
+    networks:
+      - search_network
+    deploy:
+      mode: replicated
+      replicas: 1
+      # placement:
+      #   constraints:
+      #     - node.role == manager
+      labels:
+        - "traefik.enable=true"
+        - "traefik.tcp.routers.opensearch-dashboards.rule=HostSNI(`opensearch-dashboards.skyceer.com`)"
+        - "traefik.tcp.routers.opensearch-dashboards.entrypoints=postgres"
+        - "traefik.tcp.routers.opensearch-dashboards.tls=true"
+        - "traefik.tcp.routers.opensearch-dashboards.tls.certresolver=letsencrypt"
+        - "traefik.tcp.services.opensearch-dashboards.loadbalancer.server.port=5432"
+
+networks:
+  search_network:
+    driver: overlay
+    attachable: true
+
+volumes:
+  es_data:

@@ -1,0 +1,124 @@
+version: '3.8'
+
+services:
+  postgresql-master:
+    image: bitnami/postgresql:latest
+    hostname: postgresql-master-hostname
+    ports:
+      - "5432:5432" # Published on port 5432 of the ingress network
+    volumes:
+      - postgresql_master_data:/bitnami/postgresql
+    environment:
+      - POSTGRESQL_REPLICATION_MODE=master
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_USERNAME=postgres
+      - POSTGRESQL_PASSWORD=password
+    networks:
+      - postgres_network
+      - traefik_network
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.tcp.routers.postgresql-master.rule=HostSNI(`postgresql-master.skyceer.com`)"
+        - "traefik.tcp.routers.postgresql-master.entrypoints=postgres"
+        - "traefik.tcp.routers.postgresql-master.tls=true"
+        - "traefik.tcp.routers.postgresql-master.tls.certresolver=letsencrypt"
+        - "traefik.tcp.services.postgresql-master.loadbalancer.server.port=5432"
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+          # - node.labels.hostname == postgresql_master
+
+  postgresql-slave-1:
+    image: bitnami/postgresql:latest
+    ports:
+      - "5433:5432" # Published on port 5433 of the ingress network
+    volumes:
+      - postgresql_slave_data_1:/bitnami/postgresql
+    depends_on:
+      - postgresql-master
+    environment:
+      - POSTGRESQL_REPLICATION_MODE=slave
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_MASTER_HOST=postgresql-master-hostname
+      - POSTGRESQL_USERNAME=postgres
+      - POSTGRESQL_PASSWORD=password
+      - POSTGRESQL_MASTER_PORT_NUMBER=5432
+    networks:
+      - postgres_network
+      - traefik_network
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.tcp.routers.postgresql-slave-1.rule=HostSNI(`postgresql-slave-1.skyceer.com`)"
+        - "traefik.tcp.routers.postgresql-slave-1.entrypoints=postgres"
+        - "traefik.tcp.routers.postgresql-slave-1.tls=true"
+        - "traefik.tcp.routers.postgresql-slave-1.tls.certresolver=letsencrypt"
+        - "traefik.tcp.services.postgresql-slave-1.loadbalancer.server.port=5432"
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+          # - node.labels.hostname == postgresql-slave-1
+
+networks:
+  postgres_network:
+    driver: overlay
+    attachable: true
+  traefik_network:
+    driver: overlay
+    attachable: true
+
+volumes:
+  postgresql_master_data:
+    driver: local
+  postgresql_slave_data_1:
+    driver: local
+
+
+
+
+# SAMPLE SCRIPT
+
+# -- 1. Create the table structure (if it doesn't exist)
+# CREATE TABLE IF NOT EXISTS users (
+#     user_id SERIAL PRIMARY KEY,
+#     username VARCHAR(50) NOT NULL UNIQUE,
+#     email VARCHAR(100) NOT NULL,
+#     age INTEGER,
+#     is_active BOOLEAN DEFAULT TRUE,
+#     registration_date TIMESTAMP WITHOUT TIME ZONE
+# );
+
+# -- 2. Insert 10,000 rows of sample data
+# INSERT INTO users (
+#     username,
+#     email,
+#     age,
+#     registration_date
+# )
+# SELECT
+#     -- Generate a unique username like 'user_1', 'user_2', etc.
+#     'user_' || i::text AS username,
+    
+#     -- Generate a unique email using the MD5 hash of the row number
+#     left(md5(i::text), 10) || '@example.com' AS email,
+    
+#     -- Generate a random age between 18 and 60
+#     floor(random() * (60-18+1) + 18)::int AS age,
+    
+#     -- Generate a registration date within the last 365 days
+#     NOW() - (random() * interval '365 days') AS registration_date
+# FROM 
+#     -- This generates a set of integers from 1 to 10000
+#     generate_series(1, 10000) AS s(i);
+
+
+# -- 3. Verify the data
+# SELECT COUNT(*) FROM users;
+# SELECT * FROM users LIMIT 10;

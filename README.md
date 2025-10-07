@@ -31,7 +31,11 @@ ssh -i "~/Documents/aws/key_pair_01.pem" \
 ssh -N \
      -R 80:localhost:80 \
      -R 443:localhost:443 \
+     -R 3000:localhost:3000 \
      -R 5432:localhost:5432 \
+     -R 8080:localhost:8080 \
+     -R 9200:localhost:9200 \
+     -R 27017:localhost:27017 \
      -c aes128-gcm@openssh.com \
      -o "ServerAliveInterval=60" \
      -o "ServerAliveCountMax=3" \
