@@ -5,7 +5,7 @@ services:
     image: bitnami/postgresql:latest
     hostname: postgresql-master-hostname
     ports:
-      - "5432:5432" # Published on port 5432 of the ingress network
+      - "5432:5432" # Published on port 5432 of the ingress network 
     volumes:
       - postgresql_master_data:/bitnami/postgresql
     environment:
