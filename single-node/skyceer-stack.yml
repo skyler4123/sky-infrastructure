@@ -4,6 +4,7 @@ services:
   skyceer-web:
     # image: pkphung2001/skyceer-rails:latest
     image: skyceer-rails
+    command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails db:prepare && bundle exec rails assets:precompile && bundle exec thrust bin/rails server"
     environment:
       RAILS_MASTER_KEY: ${RAILS_MASTER_KEY}
     volumes:
@@ -37,7 +38,8 @@ services:
   skyceer-job:
     # image: pkphung2001/skyceer-rails:latest
     image: skyceer-rails
-    command: bin/jobs
+    # Wait 10s to ensure database already setup by skyceer-web
+    command: bash -c "sleep 10 && bin/jobs"
     environment:
       RAILS_MASTER_KEY: ${RAILS_MASTER_KEY}
     volumes:
