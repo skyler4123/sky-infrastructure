@@ -16,6 +16,8 @@ services:
     tty: true
     networks:
       - postgres-stack_postgres_network
+      - mongo-stack_mongodb_network
+      - search-stack_search_network
     deploy:
       mode: replicated
       replicas: 1
@@ -48,6 +50,8 @@ services:
       - skyceer-web
     networks:
       - postgres-stack_postgres_network
+      - mongo-stack_mongodb_network
+      - search-stack_search_network
     deploy:
       mode: replicated
       replicas: 1
@@ -64,15 +68,17 @@ volumes:
   skyceer_job_data:
 
 networks:
-  traefik-stack_traefik_network:
-    external: true
+  # traefik-stack_traefik_network:
+  #   external: true
+  # grafana-stack_grafana_network:
+  #   external: true
+  # grafana-stack_grafana_network:
+  #   external: true
+
   postgres-stack_postgres_network:
-    external: true
-  grafana-stack_grafana_network:
     external: true
   mongo-stack_mongodb_network:
     external: true
   search-stack_search_network:
     external: true
-  grafana-stack_grafana_network:
-    external: true
+

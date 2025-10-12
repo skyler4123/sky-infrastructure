@@ -42,10 +42,12 @@ docker node update --label-add node_rule=postgresql_slave_1 <node_id>
 docker swarm init
 docker stack deploy -c portainer-stack.yml portainer-stack
 docker stack deploy -c traefik-stack.yml traefik-stack
-docker stack deploy -c postgres-stack.yml postgres-stack
 docker stack deploy -c grafana-stack.yml grafana-stack
+
+docker stack deploy -c postgres-stack.yml postgres-stack
 docker stack deploy -c mongo-stack.yml mongo-stack
 docker stack deploy -c search-stack.yml search-stack
+
 RAILS_MASTER_KEY=$(cat ./.ignore/production.key) docker stack deploy -c skyceer-stack.yml skyceer-stack
 
 
