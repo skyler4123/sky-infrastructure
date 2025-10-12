@@ -1,39 +1,42 @@
 version: '3.8'
 
-name: skyceer_development
 services:
   skyceer-web:
-    image: pkphung2001/skyceer_rails:latest
+    # image: pkphung2001/skyceer-rails:latest
+    image: skyceer-rails
     environment:
       RAILS_MASTER_KEY: ${RAILS_MASTER_KEY}
     volumes:
       - skyceer-web_data:/rails
     ports:
-      - "80:80"
-      - "443:443"
+      - "81:80"
+      - "444:443"
     stdin_open: true
     tty: true
     networks:
-      - skyceer_network
-      - traefik_network
+      - postgres-stack_postgres_network
     deploy:
       mode: replicated
       replicas: 1
+      restart_policy:
+        condition: on-failure # Only restart if the command fails (non-zero exit code)
+        max_attempts: 0         # Do not attempt to restart on failure (this is the key to 'run once')
       placement:
         constraints:
           - node.role == manager
           # - node.labels.hostname == postgresql_master
-      labels:
-        - "traefik.enable=true"
-        - "traefik.http.routers.skyceer-web.rule=Host(`skyceer-web.skyceer.com`)" # Unique hostname
-        - "traefik.http.routers.skyceer-web.entrypoints=websecure"
-        - "traefik.http.routers.skyceer-web.tls=true"
-        - "traefik.http.routers.skyceer-web.tls.certresolver=letsencrypt"
-        - "traefik.http.services.skyceer-web.loadbalancer.server.port=80" # Internal port for the service
+      # labels:
+      #   - "traefik.enable=true"
+      #   - "traefik.http.routers.skyceer-web.rule=Host(`skyceer-web.skyceer.com`)" # Unique hostname
+      #   - "traefik.http.routers.skyceer-web.entrypoints=websecure"
+      #   - "traefik.http.routers.skyceer-web.tls=true"
+      #   - "traefik.http.routers.skyceer-web.tls.certresolver=letsencrypt"
+      #   - "traefik.http.services.skyceer-web.loadbalancer.server.port=80" # Internal port for the service
 
 
   skyceer-job:
-    image: pkphung2001/skyceer_rails:latest
+    # image: pkphung2001/skyceer-rails:latest
+    image: skyceer-rails
     command: bin/jobs
     environment:
       RAILS_MASTER_KEY: ${RAILS_MASTER_KEY}
@@ -42,11 +45,13 @@ services:
     depends_on:
       - skyceer-web
     networks:
-      - skyceer_network
-      - traefik_network
+      - postgres-stack_postgres_network
     deploy:
       mode: replicated
       replicas: 1
+      restart_policy:
+        condition: on-failure # Only restart if the command fails (non-zero exit code)
+        max_attempts: 0         # Do not attempt to restart on failure (this is the key to 'run once')
       placement:
         constraints:
           - node.role == manager
@@ -57,9 +62,15 @@ volumes:
   skyceer_job_data:
 
 networks:
-  skyceer_network:
-    driver: overlay
-    attachable: true
-  traefik_network:
-    driver: overlay
-    attachable: true
+  traefik-stack_traefik_network:
+    external: true
+  postgres-stack_postgres_network:
+    external: true
+  grafana-stack_grafana_network:
+    external: true
+  mongo-stack_mongodb_network:
+    external: true
+  search-stack_search_network:
+    external: true
+  grafana-stack_grafana_network:
+    external: true

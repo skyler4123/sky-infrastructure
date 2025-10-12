@@ -55,3 +55,5 @@ docker stack rm postgres-stack
 docker stack rm grafana-stack
 docker stack rm mongo-stack
 docker stack rm search-stack
+docker stack rm skyceer-stack
+
