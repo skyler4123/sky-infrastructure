@@ -4,7 +4,7 @@ services:
   grafana:
     image: grafana/otel-lgtm
     ports:
-      - "3000:3000" # Grafana
+      - "3001:3000" # Grafana
       - "4317:4317" # OpenTelemetry
       - "4318:4318" # OpenTelemetry
       - "9090:9090" # Prometheus
@@ -24,15 +24,12 @@ services:
         - "traefik.http.routers.grafana.tls.certresolver=letsencrypt" # Use Let’s Encrypt resolver
         - "traefik.http.services.grafana.loadbalancer.server.port=3000"
       replicas: 1
-      # placement:
-        # constraints:
-        #   - node.role == manager
+      placement:
+        constraints:
+          - node.role == manager
 
 networks:
   grafana_network:
-    driver: overlay
-    attachable: true
-  traefik_network:
     driver: overlay
     attachable: true
 

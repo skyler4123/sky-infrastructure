@@ -70,10 +70,9 @@ volumes:
 networks:
   # traefik-stack_traefik_network:
   #   external: true
-  # grafana-stack_grafana_network:
-  #   external: true
-  # grafana-stack_grafana_network:
-  #   external: true
+
+  grafana-stack_grafana_network:
+    external: true
 
   postgres-stack_postgres_network:
     external: true
