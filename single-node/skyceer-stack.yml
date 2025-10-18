@@ -15,6 +15,7 @@ services:
     stdin_open: true
     tty: true
     networks:
+      - grafana-stack_grafana_network
       - postgres-stack_postgres_network
       - mongo-stack_mongodb_network
       - search-stack_search_network
