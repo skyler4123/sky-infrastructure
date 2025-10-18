@@ -13,7 +13,7 @@ services:
       - grafana_data:/data
     networks:
       - grafana_network
-      - traefik_network  # Add this line
+      - traefik-stack_traefik_network
     deploy:
       mode: replicated
       labels:
@@ -32,6 +32,8 @@ networks:
   grafana_network:
     driver: overlay
     attachable: true
+  traefik-stack_traefik_network:
+    external: true
 
 volumes:
   grafana_data:

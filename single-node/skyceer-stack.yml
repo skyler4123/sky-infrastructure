@@ -68,8 +68,8 @@ volumes:
   skyceer_job_data:
 
 networks:
-  # traefik-stack_traefik_network:
-  #   external: true
+  traefik-stack_traefik_network:
+    external: true
 
   grafana-stack_grafana_network:
     external: true
