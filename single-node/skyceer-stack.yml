@@ -8,7 +8,8 @@ services:
     environment:
       RAILS_MASTER_KEY: ${RAILS_MASTER_KEY}
     volumes:
-      - skyceer-web_data:/rails
+      - skyceer-web_public-volume:/rails/public
+      - skyceer-web_log-volume:/rails/log
     ports:
       - "81:80"
       - "444:443"
@@ -29,13 +30,13 @@ services:
         constraints:
           - node.role == manager
           # - node.labels.hostname == postgresql_master
-      # labels:
-      #   - "traefik.enable=true"
-      #   - "traefik.http.routers.skyceer-web.rule=Host(`skyceer-web.skyceer.com`)" # Unique hostname
-      #   - "traefik.http.routers.skyceer-web.entrypoints=websecure"
-      #   - "traefik.http.routers.skyceer-web.tls=true"
-      #   - "traefik.http.routers.skyceer-web.tls.certresolver=letsencrypt"
-      #   - "traefik.http.services.skyceer-web.loadbalancer.server.port=80" # Internal port for the service
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.skyceer-web.rule=Host(`skyceer-web.skyceer.com`)" # Unique hostname
+        - "traefik.http.routers.skyceer-web.entrypoints=websecure"
+        - "traefik.http.routers.skyceer-web.tls=true"
+        - "traefik.http.routers.skyceer-web.tls.certresolver=letsencrypt"
+        - "traefik.http.services.skyceer-web.loadbalancer.server.port=80" # Internal port for the service
 
 
   skyceer-job:
@@ -46,7 +47,8 @@ services:
     environment:
       RAILS_MASTER_KEY: ${RAILS_MASTER_KEY}
     volumes:
-      - skyceer_job_data:/rails
+      - skyceer-job_public-volume:/rails/public
+      - skyceer-job_log-volume:/rails/log
     depends_on:
       - skyceer-web
     networks:
@@ -65,8 +67,10 @@ services:
           # - node.labels.hostname == postgresql_master
 
 volumes:
-  skyceer-web_data:
-  skyceer_job_data:
+  skyceer-web_public-volume:
+  skyceer-web_log-volume:
+  skyceer-job_public-volume:
+  skyceer-job_log-volume:
 
 networks:
   traefik-stack_traefik_network:
