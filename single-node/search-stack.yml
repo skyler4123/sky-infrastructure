@@ -23,23 +23,23 @@ services:
         constraints:
           - node.role == manager
 
-  opensearch-dashboards:
-    image: opensearchproject/opensearch-dashboards:3
-    environment:
-      - 'OPENSEARCH_HOSTS=["http://opensearch:9200"]'
-      - "DISABLE_SECURITY_DASHBOARDS_PLUGIN=true"
-    ports:
-      - "5601:5601"
-    depends_on:
-      - opensearch
-    networks:
-      - search_network
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
+  # opensearch-dashboards:
+  #   image: opensearchproject/opensearch-dashboards:3
+  #   environment:
+  #     - 'OPENSEARCH_HOSTS=["http://opensearch:9200"]'
+  #     - "DISABLE_SECURITY_DASHBOARDS_PLUGIN=true"
+  #   ports:
+  #     - "5601:5601"
+  #   depends_on:
+  #     - opensearch
+  #   networks:
+  #     - search_network
+  #   deploy:
+  #     mode: replicated
+  #     replicas: 1
+  #     placement:
+  #       constraints:
+  #         - node.role == manager
 
 
 networks:

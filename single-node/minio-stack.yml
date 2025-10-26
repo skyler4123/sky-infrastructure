@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  # MinIO Service
+  minio:
+    image: minio/minio:latest
+    ports:
+      # MinIO API port
+      - "9000:9000" 
+      # MinIO Console/UI port
+      - "9001:9001" 
+    environment:
+      # MinIO root user credentials
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    networks:
+    - minio_network
+    volumes:
+      # Data persistence
+      - minio_data:/data 
+    command: server /data --console-address ":9001"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.minio-dashboard.rule=Host(`minio-dashboard.skyceer.com`)"
+        - "traefik.http.routers.minio-dashboard.entrypoints=websecure" # Changed to websecure (port 443)
+        - "traefik.http.routers.minio-dashboard.tls=true" # Enable TLS
+        - "traefik.http.routers.minio-dashboard.tls.certresolver=letsencrypt" # Use Let’s Encrypt resolver
+        - "traefik.http.services.minio-dashboard.loadbalancer.server.port=9001"
+
+networks:
+  minio_network:
+    driver: overlay
+    attachable: true
+
+volumes:
+  minio_data:
+    driver: local

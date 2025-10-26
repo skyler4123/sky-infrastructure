@@ -43,7 +43,7 @@ services:
     # image: pkphung2001/skyceer-rails:latest
     image: skyceer-rails
     # Wait 10s to ensure database already setup by skyceer-web
-    command: bash -c "sleep 10 && bin/jobs"
+    command: bash -c "sleep 30 && bin/jobs"
     environment:
       RAILS_MASTER_KEY: ${RAILS_MASTER_KEY}
     volumes:

@@ -34,6 +34,8 @@ ssh -N \
      -R 3000:localhost:3000 \
      -R 5432:localhost:5432 \
      -R 8080:localhost:8080 \
+     -R 9000:localhost:9000 \
+     -R 9001:localhost:9001 \
      -R 9200:localhost:9200 \
      -R 27017:localhost:27017 \
      -c aes128-gcm@openssh.com \

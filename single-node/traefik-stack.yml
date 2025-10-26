@@ -59,6 +59,33 @@ services:
 
           # Service hint
         - "traefik.http.services.traefik.loadbalancer.server.port=8080"
+
+
+  # whoami:
+  #   image: traefik/whoami
+  #   networks:
+  #     - traefik_network
+  #   deploy:
+  #     mode: replicated
+  #     replicas: 1
+  #     placement:
+  #       constraints:
+  #         - node.role == manager
+  #     restart_policy:
+  #       condition: on-failure
+  #     labels:
+  #       - "traefik.enable=true"
+  #       - "traefik.http.routers.whoami.rule=Host(`whoami.skyceer.com`)"
+  #       - "traefik.http.routers.whoami.entrypoints=websecure" # Changed to websecure (port 443)
+  #       - "traefik.http.routers.whoami.tls=true" # Enable TLS
+  #       - "traefik.http.routers.whoami.tls.certresolver=letsencrypt" # Use Let’s Encrypt resolver
+  #       - "traefik.http.services.whoami.loadbalancer.server.port=80"
+  #       # # HTTP to HTTPS redirect
+  #       # - "traefik.http.routers.whoami-http.rule=Host(`whoami.skyceer.com`)"
+  #       # - "traefik.http.routers.whoami-http.entrypoints=web"
+  #       # - "traefik.http.routers.whoami-http.middlewares=redirect-to-https"
+  #       # - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
   whoami:
     image: traefik/whoami
     networks:
@@ -71,38 +98,71 @@ services:
           - node.role == manager
       restart_policy:
         condition: on-failure
-      # labels:
-      #   - "traefik.enable=true"
-      #   - "traefik.http.routers.whoami.rule=Host(`whoami.skyceer.com`)"
-      #   - "traefik.http.routers.whoami.entrypoints=websecure" # Changed to websecure (port 443)
-      #   - "traefik.http.routers.whoami.tls=true" # Enable TLS
-      #   - "traefik.http.routers.whoami.tls.certresolver=letsencrypt" # Use Let’s Encrypt resolver
-      #   - "traefik.http.services.whoami.loadbalancer.server.port=80"
-      #   # # HTTP to HTTPS redirect
-      #   # - "traefik.http.routers.whoami-http.rule=Host(`whoami.skyceer.com`)"
-      #   # - "traefik.http.routers.whoami-http.entrypoints=web"
-      #   # - "traefik.http.routers.whoami-http.middlewares=redirect-to-https"
-      #   # - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.whoami1.rule=Host(`whoami1.skyceer.com`)"
+        - "traefik.http.routers.whoami1.entrypoints=websecure" # Changed to websecure (port 443)
+        - "traefik.http.routers.whoami1.tls=true" # Enable TLS
+        - "traefik.http.routers.whoami1.tls.certresolver=letsencrypt" # Use Let’s Encrypt resolver
+        - "traefik.http.services.whoami1.loadbalancer.server.port=80"
+        # # HTTP to HTTPS redirect
+        # - "traefik.http.routers.whoami-http.rule=Host(`whoami.skyceer.com`)"
+        # - "traefik.http.routers.whoami-http.entrypoints=web"
+        # - "traefik.http.routers.whoami-http.middlewares=redirect-to-https"
+        # - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 
-  welcome-to-docker:
-    image: docker/welcome-to-docker # Replace with your Rails app image, e.g., your-rails-app:latest
+  # welcome-to-docker:
+  #   image: docker/welcome-to-docker # Replace with your Rails app image, e.g., your-rails-app:latest
+  #   networks:
+  #     - traefik_network
+  #   deploy:
+  #     mode: replicated
+  #     replicas: 1
+  #     placement:
+  #       constraints:
+  #         - node.role == manager
+  #     restart_policy:
+  #       condition: on-failure
+  #     labels:
+  #       - "traefik.enable=true"
+  #       - "traefik.http.routers.welcome-to-docker.rule=Host(`welcome-to-docker.skyceer.com`)" # Unique hostname
+  #       - "traefik.http.routers.welcome-to-docker.entrypoints=websecure"
+  #       - "traefik.http.routers.welcome-to-docker.tls=true"
+  #       - "traefik.http.routers.welcome-to-docker.tls.certresolver=letsencrypt"
+  #       - "traefik.http.services.welcome-to-docker.loadbalancer.server.port=80" # Internal port for the service
+
+
+  minio-dashboard:
+    image: minio/minio:latest
+    ports:
+      # MinIO API port
+      - "9000:9000" 
+      # MinIO Console/UI port
+      - "9001:9001" 
+    environment:
+      # MinIO root user credentials
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
     networks:
       - traefik_network
+    volumes:
+      # Data persistence
+      - minio_data:/data 
+    command: server /data --console-address ":9001"
     deploy:
       mode: replicated
       replicas: 1
       placement:
         constraints:
           - node.role == manager
-      restart_policy:
-        condition: on-failure
-      # labels:
-      #   - "traefik.enable=true"
-      #   - "traefik.http.routers.welcome-to-docker.rule=Host(`welcome-to-docker.skyceer.com`)" # Unique hostname
-      #   - "traefik.http.routers.welcome-to-docker.entrypoints=websecure"
-      #   - "traefik.http.routers.welcome-to-docker.tls=true"
-      #   - "traefik.http.routers.welcome-to-docker.tls.certresolver=letsencrypt"
-      #   - "traefik.http.services.welcome-to-docker.loadbalancer.server.port=80" # Internal port for the service
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.minio-dashboard.rule=Host(`minio-dashboard.skyceer.com`)"
+        - "traefik.http.routers.minio-dashboard.entrypoints=websecure" # Changed to websecure (port 443)
+        - "traefik.http.routers.minio-dashboard.tls=true" # Enable TLS
+        - "traefik.http.routers.minio-dashboard.tls.certresolver=letsencrypt" # Use Let’s Encrypt resolver
+        - "traefik.http.services.minio-dashboard.loadbalancer.server.port=9001"
+
 
 networks:
   traefik_network:
@@ -111,4 +171,6 @@ networks:
 
 volumes:
   traefik_data:
+    driver: local
+  minio_data:
     driver: local
